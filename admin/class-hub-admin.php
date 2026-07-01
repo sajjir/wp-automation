@@ -11,21 +11,18 @@ class Hub_Admin {
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'save_settings' ) );
-        // اضافه کردن هوک حیاتی برای لود JS و CSS
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
 
-    public function enqueue_admin_assets( $hook ) {
-        // فقط در صفحه اختصاصی اتوماسیون هاب فایل‌ها را لود کن
-        if ( 'toplevel_page_automation-hub' !== $hook ) {
-            return;
-        }
-
-        // لود فایل‌های استایل و جاوااسکریپت
-        // بر اساس ساختار ریپازیتوری شما، مسیر فایل‌ها این‌گونه تنظیم شده است:
-        wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
-        wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
-    }
+	public function enqueue_admin_assets( $hook ) {
+		if ( 'toplevel_page_automation-hub' !== $hook ) {
+			return;
+		}
+		// نکته: در ریپازیتوری شما فایل CSS در مسیر admin/js/css/ قرار دارد.
+		// بهتر است فایل را به admin/css/ منتقل کنید تا این مسیر استاندارد درست کار کند.
+		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
+		wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
+	}
 
 	public function add_plugin_admin_menu() {
 		add_menu_page(
@@ -54,7 +51,7 @@ class Hub_Admin {
 				if ( 'campaigns' === $active_tab ) {
 					$this->render_campaigns_tab();
 				} else {
-					echo '<div class="notice notice-info"><p>تنظیمات کانال‌ها در این تب قرار دارد.</p></div>';
+					$this->render_connections_tab();
 				}
 				?>
 			</form>
@@ -82,13 +79,118 @@ class Hub_Admin {
 			
 			<p>
 				<button type="button" id="btn-add-new-rule" class="button button-primary button-large">➕ افزودن سناریوی جدید</button>
-				<input type="submit" name="hub_save_rules" class="button button-success button-large style-save-btn" value="💾 ذخیره‌سازی کل تغییرات" style="background:#46b450;color:#fff;border-color:#349b40;" />
+				<input type="submit" name="hub_save_settings" class="button button-success button-large style-save-btn" value="💾 ذخیره‌سازی کل تغییرات" style="background:#46b450;color:#fff;border-color:#349b40;" />
 			</p>
 		</div>
 
 		<script type="text/template" id="rule-template">
 			<?php $this->render_rule_row( array(), '{{RULE_INDEX}}', $webhooks, true ); ?>
 		</script>
+		<?php
+	}
+
+	/**
+	 * Renders Connections (Webhooks) Tab
+	 */
+	private function render_connections_tab() {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		?>
+		<div class="connections-manager-holder" style="margin-top: 20px;">
+			<div id="webhooks-repeater-container">
+				<?php 
+				if ( ! empty( $webhooks ) && is_array( $webhooks ) ) {
+					$index = 0;
+					foreach ( $webhooks as $key => $webhook ) {
+						$this->render_webhook_row( $webhook, $index );
+						$index++;
+					}
+				}
+				?>
+			</div>
+			
+			<p>
+				<button type="button" id="btn-add-new-webhook" class="button button-primary button-large">➕ افزودن اتصال جدید</button>
+				<input type="submit" name="hub_save_settings" class="button button-success button-large style-save-btn" value="💾 ذخیره‌سازی کانال‌ها" style="background:#46b450;color:#fff;border-color:#349b40;" />
+			</p>
+		</div>
+
+		<script type="text/template" id="webhook-template">
+			<?php $this->render_webhook_row( array(), '{{WH_INDEX}}', true ); ?>
+		</script>
+		<?php
+	}
+
+	private function render_webhook_row( $webhook = array(), $index = 0, $is_template = false ) {
+		$name            = isset( $webhook['name'] ) ? $webhook['name'] : '';
+		$type            = isset( $webhook['type'] ) ? $webhook['type'] : 'melipayamak';
+		$url             = isset( $webhook['url'] ) ? $webhook['url'] : '';
+		$username        = isset( $webhook['username'] ) ? $webhook['username'] : '';
+		$password        = isset( $webhook['password'] ) ? $webhook['password'] : '';
+		$from_number     = isset( $webhook['from_number'] ) ? $webhook['from_number'] : '';
+		$token           = isset( $webhook['token'] ) ? $webhook['token'] : '';
+		$chat_id         = isset( $webhook['chat_id'] ) ? $webhook['chat_id'] : '';
+		$phone_number_id = isset( $webhook['phone_number_id'] ) ? $webhook['phone_number_id'] : '';
+		$access_token    = isset( $webhook['access_token'] ) ? $webhook['access_token'] : '';
+		$app_id          = isset( $webhook['app_id'] ) ? $webhook['app_id'] : '';
+		$rest_api_key    = isset( $webhook['rest_api_key'] ) ? $webhook['rest_api_key'] : '';
+
+		$row_class = $is_template ? 'webhook-row repeater-row template-hidden' : 'webhook-row repeater-row';
+		$attr_index = $is_template ? 'data-index="{{WH_INDEX}}"' : 'data-index="' . $index . '"';
+		$input_prefix = "webhooks[$index]";
+		?>
+		<div class="<?php echo $row_class; ?>" <?php echo $attr_index; ?> style="background: #fff; border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; position: relative;">
+			<button type="button" class="remove-webhook-row button-link" style="position: absolute; left: 15px; top: 15px; color: #a00;">❌ حذف کانال</button>
+			<h3 style="margin-top: 0;">🔌 تنظیمات اتصال</h3>
+			
+			<table class="form-table">
+				<tr>
+					<th>نام کانال</th>
+					<td><input type="text" name="<?php echo $input_prefix; ?>[name]" value="<?php echo esc_attr($name); ?>" class="regular-text" placeholder="مثلا: پیامک اصلی سایت" required /></td>
+				</tr>
+				<tr>
+					<th>نوع اتصال (Provider)</th>
+					<td>
+						<select name="<?php echo $input_prefix; ?>[type]" class="webhook-type-selector regular-text">
+							<option value="melipayamak" <?php selected($type, 'melipayamak'); ?>>ملی‌پیامک (SMS)</option>
+							<option value="telegram" <?php selected($type, 'telegram'); ?>>تلگرام (Telegram Bot)</option>
+							<option value="n8n" <?php selected($type, 'n8n'); ?>>n8n (Webhook)</option>
+							<option value="google_sheet" <?php selected($type, 'google_sheet'); ?>>گوگل شیت (Webhook)</option>
+							<option value="email" <?php selected($type, 'email'); ?>>ایمیل (SMTP وردپرس)</option>
+							<option value="whatsapp" <?php selected($type, 'whatsapp'); ?>>واتساپ (Cloud API)</option>
+							<option value="slack" <?php selected($type, 'slack'); ?>>اسلک (Slack Webhook)</option>
+							<option value="discord" <?php selected($type, 'discord'); ?>>دیسکورد (Discord Webhook)</option>
+							<option value="onesignal" <?php selected($type, 'onesignal'); ?>>پوش‌نوتیفیکیشن (OneSignal)</option>
+						</select>
+					</td>
+				</tr>
+			</table>
+
+			<div style="background:#f9f9f9; padding: 10px; border-radius:3px; margin-top: 10px;">
+				<div class="wh-field wh-melipayamak <?php echo $type == 'melipayamak' ? '' : 'hidden-box'; ?>">
+					<p>نام کاربری: <input type="text" name="<?php echo $input_prefix; ?>[username]" value="<?php echo esc_attr($username); ?>" /></p>
+					<p>رمز عبور: <input type="password" name="<?php echo $input_prefix; ?>[password]" value="<?php echo esc_attr($password); ?>" /></p>
+					<p>شماره خط فرستنده: <input type="text" name="<?php echo $input_prefix; ?>[from_number]" value="<?php echo esc_attr($from_number); ?>" dir="ltr" /></p>
+				</div>
+				<div class="wh-field wh-telegram <?php echo $type == 'telegram' ? '' : 'hidden-box'; ?>">
+					<p>توکن ربات (Bot Token): <input type="text" name="<?php echo $input_prefix; ?>[token]" value="<?php echo esc_attr($token); ?>" class="regular-text" dir="ltr" /></p>
+					<p>شناسه چت (Chat ID): <input type="text" name="<?php echo $input_prefix; ?>[chat_id]" value="<?php echo esc_attr($chat_id); ?>" dir="ltr" /></p>
+				</div>
+				<div class="wh-field wh-n8n wh-google_sheet wh-slack wh-discord <?php echo in_array($type, ['n8n', 'google_sheet', 'slack', 'discord']) ? '' : 'hidden-box'; ?>">
+					<p>آدرس وب‌هوک (URL): <input type="url" name="<?php echo $input_prefix; ?>[url]" value="<?php echo esc_attr($url); ?>" class="large-text" dir="ltr" /></p>
+				</div>
+				<div class="wh-field wh-email <?php echo $type == 'email' ? '' : 'hidden-box'; ?>">
+					<p class="description">برای ایمیل نیاز به تنظیمات اضافه‌ای نیست و از تابع wp_mail خود سایت استفاده می‌شود.</p>
+				</div>
+				<div class="wh-field wh-whatsapp <?php echo $type == 'whatsapp' ? '' : 'hidden-box'; ?>">
+					<p>شناسه شماره تلفن (Phone Number ID): <input type="text" name="<?php echo $input_prefix; ?>[phone_number_id]" value="<?php echo esc_attr($phone_number_id); ?>" class="regular-text" dir="ltr" /></p>
+					<p>توکن دسترسی (Access Token): <input type="text" name="<?php echo $input_prefix; ?>[access_token]" value="<?php echo esc_attr($access_token); ?>" class="large-text" dir="ltr" /></p>
+				</div>
+				<div class="wh-field wh-onesignal <?php echo $type == 'onesignal' ? '' : 'hidden-box'; ?>">
+					<p>شناسه اپلیکیشن (App ID): <input type="text" name="<?php echo $input_prefix; ?>[app_id]" value="<?php echo esc_attr($app_id); ?>" class="regular-text" dir="ltr" /></p>
+					<p>کلید API (REST API Key): <input type="text" name="<?php echo $input_prefix; ?>[rest_api_key]" value="<?php echo esc_attr($rest_api_key); ?>" class="regular-text" dir="ltr" /></p>
+				</div>
+			</div>
+		</div>
 		<?php
 	}
 
@@ -226,7 +328,10 @@ class Hub_Admin {
 									</tr>
 									<tr>
 										<th>متن پیام خروجی</th>
-										<td><textarea name="<?php echo $act_prefix; ?>[message]" rows="3" style="width:100%;"><?php echo esc_textarea($act['message']); ?></textarea></td>
+										<td>
+											<textarea name="<?php echo $act_prefix; ?>[message]" rows="3" style="width:100%;"><?php echo esc_textarea($act['message']); ?></textarea>
+											<p class="description">شورت‌کدهای مجاز: <code>{order_id}</code>, <code>{total}</code>, <code>{full_name}</code>, <code>{phone}</code>, <code>{address}</code>, <code>{date}</code>, <code>{items_detailed}</code></p>
+										</td>
 									</tr>
 									<tr>
 										<th>⏱ تاخیر در اجرا</th>
@@ -261,10 +366,12 @@ class Hub_Admin {
 	 * Form Save Handlers Processing Sanitization Engine Framework
 	 */
 	public function save_settings() {
-		if ( ! isset( $_POST['hub_save_rules'] ) ) return;
+		// الان هر دو فرم Rules و Webhooks با کلیک روی نام hub_save_settings تایید میشن
+		if ( ! isset( $_POST['hub_save_settings'] ) ) return;
 		if ( ! current_user_can( 'manage_options' ) ) return;
 		check_admin_referer( 'hub_save_nonce', 'hub_nonce' );
 
+		// 1. ذخیره Rules
 		$clean_rules = array();
 		if ( isset( $_POST['rules'] ) && is_array( $_POST['rules'] ) ) {
 			foreach ( $_POST['rules'] as $rule ) {
@@ -314,8 +421,32 @@ class Hub_Admin {
 				);
 			}
 		}
-
 		update_option( 'hub_rules', $clean_rules );
-		echo '<div class="notice notice-success is-dismissible"><p>✅ تمامی سناریوها و زنجیره‌های اقدامات با موفقیت ذخیره شدند.</p></div>';
+
+		// 2. ذخیره Webhooks (اتصالات)
+		$clean_webhooks = array();
+		if ( isset( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
+			foreach ( $_POST['webhooks'] as $wh ) {
+				if ( empty( $wh['name'] ) ) continue;
+				$key = sanitize_title( $wh['name'] );
+				$clean_webhooks[ $key ] = array(
+					'name'            => sanitize_text_field( $wh['name'] ),
+					'type'            => sanitize_text_field( $wh['type'] ),
+					'url'             => !empty($wh['url']) ? esc_url_raw($wh['url']) : '',
+					'username'        => !empty($wh['username']) ? sanitize_text_field( $wh['username'] ) : '',
+					'password'        => !empty($wh['password']) ? sanitize_text_field( $wh['password'] ) : '',
+					'from_number'     => !empty($wh['from_number']) ? sanitize_text_field( $wh['from_number'] ) : '',
+					'token'           => !empty($wh['token']) ? sanitize_text_field( $wh['token'] ) : '',
+					'chat_id'         => !empty($wh['chat_id']) ? sanitize_text_field( $wh['chat_id'] ) : '',
+					'phone_number_id' => !empty($wh['phone_number_id']) ? sanitize_text_field( $wh['phone_number_id'] ) : '',
+					'access_token'    => !empty($wh['access_token']) ? sanitize_text_field( $wh['access_token'] ) : '',
+					'app_id'          => !empty($wh['app_id']) ? sanitize_text_field( $wh['app_id'] ) : '',
+					'rest_api_key'    => !empty($wh['rest_api_key']) ? sanitize_text_field( $wh['rest_api_key'] ) : '',
+				);
+			}
+		}
+		update_option( 'hub_webhooks', $clean_webhooks );
+
+		echo '<div class="notice notice-success is-dismissible"><p>✅ تغییرات با موفقیت ذخیره شدند.</p></div>';
 	}
 }

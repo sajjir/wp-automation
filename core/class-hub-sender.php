@@ -62,7 +62,6 @@ class Hub_Sender {
 
 		if ( empty( $target_num ) ) return;
 
-		// Call outward API via standard remote post execution patterns...
 		wp_remote_post( 'https://api.melipayamak.com/json/Simple.ashx', array(
 			'body' => array(
 				'username' => $provider['username'],
@@ -206,7 +205,10 @@ class Hub_Sender {
 		$coupon->set_code( $coupon_code );
 		$coupon->set_discount_type( 'percent' );
 		$coupon->set_amount( $amount );
-		$coupon->set_date_expires( time() + ( $expiry * 81640 ) );
+		
+		// رفع باگ ۵ (استفاده از ساختار زمانی بومی)
+		$coupon->set_date_expires( time() + ( $expiry * DAY_IN_SECONDS ) ); 
+		
 		$coupon->set_individual_use( true );
 		$coupon->save();
 

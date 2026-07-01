@@ -11,6 +11,9 @@ class Hub_Bridge {
 	public static function init() {
 		$instance = new self();
 		
+		// معرفی زمان‌بندی سفارشی برای کرون (رفع باگ ۳)
+		add_filter( 'cron_schedules', array( $instance, 'add_cron_schedules' ) );
+
 		// Triggers hooks
 		add_action( 'woocommerce_order_status_changed', array( $instance, 'trigger_order_status' ), 10, 4 );
 		
@@ -37,6 +40,16 @@ class Hub_Bridge {
 		if ( ! wp_next_scheduled( 'hub_cron_daily_event' ) ) {
 			wp_schedule_event( time(), 'daily', 'hub_cron_daily_event' );
 		}
+	}
+
+	public function add_cron_schedules( $schedules ) {
+		if ( ! isset( $schedules['quarter_hourly'] ) ) {
+			$schedules['quarter_hourly'] = array(
+				'interval' => 15 * 60,
+				'display'  => __( 'هر ۱۵ دقیقه', 'automation-hub' )
+			);
+		}
+		return $schedules;
 	}
 
 	public function trigger_order_status( $order_id, $old_status, $new_status, $order ) {
@@ -156,7 +169,6 @@ class Hub_Bridge {
 				continue;
 			}
 
-			// Evaluate conditional rules validation engine
 			if ( ! $this->check_conditions( $rule, $entity, $entity_type ) ) {
 				continue;
 			}
@@ -165,7 +177,6 @@ class Hub_Bridge {
 				continue;
 			}
 
-			// Parse multi action grid
 			foreach ( $rule['actions'] as $action ) {
 				$delay = isset( $action['delay'] ) ? $action['delay'] : array();
 				
@@ -195,7 +206,6 @@ class Hub_Bridge {
 						);
 					}
 				} else {
-					// Direct instant action dispatching loop
 					$this->dispatch_direct_action( $rule, $action, $entity, $entity_type );
 				}
 			}
@@ -218,7 +228,6 @@ class Hub_Bridge {
 
 		if ( ! $target_action ) return;
 
-		// Rehydrate context object from database instance
 		$entity = null;
 		if ( 'order' === $entity_type ) $entity = wc_get_order( $entity_id );
 		elseif ( 'product' === $entity_type ) $entity = wc_get_product( $entity_id );
@@ -229,7 +238,6 @@ class Hub_Bridge {
 			$entity = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}hub_abandoned_carts WHERE id = %d", $entity_id ) );
 		}
 
-		// Critical: Re-evaluate constraints architecture at current runtime execution moment
 		if ( ! $this->check_conditions( $rule, $entity, $entity_type ) ) {
 			return; 
 		}
@@ -242,8 +250,8 @@ class Hub_Bridge {
 		
 		$args = array(
 			'connection_id' => $action['connection_id'],
-			'target_mode'   => $action['target_mode'],
-			'target_value'  => $action['target_value'],
+			'target_mode'   => isset($action['target_mode']) ? $action['target_mode'] : 'custom',
+			'target_value'  => isset($action['target_value']) ? $action['target_value'] : '',
 			'message'       => $parsed_message,
 			'meta'          => isset( $action['meta'] ) ? $action['meta'] : array(),
 			'entity'        => $entity,
@@ -255,9 +263,6 @@ class Hub_Bridge {
 		}
 	}
 
-	/**
-	 * Verification Matrix evaluating Rule Conditional Matching
-	 */
 	public function check_conditions( $rule, $entity, $entity_type ) {
 		if ( ! isset( $rule['conditions'] ) || empty( $rule['conditions'] ) ) {
 			return true;
@@ -293,7 +298,6 @@ class Hub_Bridge {
 				}
 			}
 
-			// Evaluation logic matching operations
 			$matched = false;
 			switch ( $op ) {
 				case 'equals': $matched = ( $current_val == $target_val ); break;
@@ -315,14 +319,57 @@ class Hub_Bridge {
 		return ! in_array( false, $results, true );
 	}
 
+	/**
+	 * Parse dynamic placeholders syntax {} (رفع باگ ۴)
+	 */
 	public function parse_shortcodes( $message, $entity, $entity_type ) {
 		if ( empty( $message ) ) return '';
+		$replacements = array();
 		
 		if ( 'order' === $entity_type && $entity instanceof WC_Order ) {
-			$message = str_replace( '[order_id]', $entity->get_id(), $message );
-			$message = str_replace( '[order_total]', $entity->get_total(), $message );
-			$message = str_replace( '[customer_name]', $entity->get_billing_first_name() . ' ' . $entity->get_billing_last_name(), $message );
+			$items = array();
+			foreach ( $entity->get_items() as $item ) {
+				$items[] = $item->get_name() . ' × ' . $item->get_quantity();
+			}
+			$replacements = array(
+				'{order_id}'       => $entity->get_id(),
+				'{total}'          => $entity->get_total(),
+				'{full_name}'      => trim( $entity->get_billing_first_name() . ' ' . $entity->get_billing_last_name() ),
+				'{phone}'          => $entity->get_billing_phone(),
+				'{address}'        => $entity->get_billing_address_1() . ' ' . $entity->get_billing_city(),
+				'{date}'           => wp_date( 'Y/m/d H:i', $entity->get_date_created()->getTimestamp() ),
+				'{items_detailed}' => implode( '، ', $items ),
+			);
+		} elseif ( 'user' === $entity_type && $entity instanceof WP_User ) {
+			$replacements = array(
+				'{user_id}'   => $entity->ID,
+				'{full_name}' => trim( $entity->first_name . ' ' . $entity->last_name ),
+				'{email}'     => $entity->user_email,
+			);
+		} elseif ( 'product' === $entity_type && $entity instanceof WC_Product ) {
+			$replacements = array(
+				'{product_id}'   => $entity->get_id(),
+				'{product_name}' => $entity->get_name(),
+				'{price}'        => $entity->get_price(),
+				'{stock}'        => $entity->get_stock_quantity(),
+			);
+		} elseif ( 'review' === $entity_type && is_object($entity) ) {
+			$replacements = array(
+				'{review_author}'  => $entity->comment_author,
+				'{review_content}' => $entity->comment_content,
+			);
+		} elseif ( 'cart' === $entity_type && is_object($entity) ) {
+			$replacements = array(
+				'{cart_id}'    => $entity->id,
+				'{user_email}' => $entity->email,
+				'{user_phone}' => $entity->phone,
+			);
 		}
+
+		if ( ! empty( $replacements ) ) {
+			$message = strtr( $message, $replacements );
+		}
+		
 		return $message;
 	}
 }
