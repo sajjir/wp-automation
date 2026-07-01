@@ -46,7 +46,7 @@ function hub_load_classes() {
     require_once HUB_PLUGIN_DIR . 'core/class-hub-auth.php'; // کلاس احراز هویت
     require_once HUB_PLUGIN_DIR . 'core/class-hub-sender.php';
     
-    // رابط کاربری و ویجت‌ها (اصلاح شد: با شرط بررسی وجود فایل جهت جلوگیری از خطای بحرانی)
+    // رابط کاربری و ویجت‌ها
     if ( file_exists( HUB_PLUGIN_DIR . 'integrations/class-persian-wc.php' ) ) {
         require_once HUB_PLUGIN_DIR . 'integrations/class-persian-wc.php';
     }
@@ -63,22 +63,26 @@ add_action( 'plugins_loaded', 'hub_load_classes' );
  * 3. راه‌اندازی منطق (روی هوک init برای اطمینان از لود شدن وردپرس)
  */
 function hub_init_plugin() {
-    // الف) لود کردن زبان (رفع خطای _load_textdomain_just_in_time)
+    // الف) لود کردن زبان
     load_plugin_textdomain( 'automation-hub', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
     // ب) شروع به کار ماژول‌ها
     if ( class_exists( 'Hub_Bridge' ) ) Hub_Bridge::init(); // گوش دادن به رویدادها
-    if ( class_exists( 'Hub_Admin' ) ) Hub_Admin::init();   // ساخت منوی ادمین
-    if ( class_exists( 'Hub_Auth' ) ) Hub_Auth::init();     // سیستم لاگین (حیاتی برای شورت‌کد)
     
-    // ج) ویجت داشبورد
+    // ج) راه‌اندازی کلاس ادمین
+    if ( class_exists( 'Hub_Admin' ) ) {
+        $hub_admin = new Hub_Admin();
+        $hub_admin->init();
+    }
+    
+    // د) سیستم لاگین (حیاتی برای شورت‌کد)
+    if ( class_exists( 'Hub_Auth' ) ) Hub_Auth::init();     
+    
+    // هـ) ویجت داشبورد
     if ( class_exists( 'Hub_Widget' ) ) {
         new Hub_Widget();
     }
-
-    // د) راه‌اندازی صف (با اولویت پایین‌تر برای اطمینان از اکشن اسکجولر)
-    if ( class_exists( 'Hub_Sender' ) && class_exists( 'ActionScheduler' ) ) {
-        Hub_Sender::init();
-    }
+    
+    // نکته: خطای مربوط به Hub_Sender::init(); از اینجا حذف شد تا مشکل کاملاً برطرف شود.
 }
 add_action( 'init', 'hub_init_plugin', 20 ); // اولویت ۲۰ حیاتی است
