@@ -36,8 +36,6 @@ class Hub_Queue {
 			$insert_id = $wpdb->insert_id;
 
 			// --- تغییر مهم: ایجاد اکشن آنی برای پردازش همین آیتم ---
-			// این خط باعث می‌شود Action Scheduler بلافاصله (یا در اولین فرصت)
-			// هوک 'hub_process_queue_item' را صدا بزند.
 			if ( function_exists( 'as_schedule_single_action' ) ) {
 				as_schedule_single_action( time(), 'hub_process_queue_item', array( 'id' => $insert_id ), 'hub_queue' );
 			}
@@ -52,7 +50,6 @@ class Hub_Queue {
 
 	/**
 	 * Fetch pending items from the queue.
-	 * (این متد در حالت Async استفاده مستقیم ندارد اما برای دیباگ یا پردازش دسته‌ای در آینده مفید است)
 	 *
 	 * @param int $limit Number of items to fetch.
 	 * @return array Objects from the database.
@@ -61,7 +58,6 @@ class Hub_Queue {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'hub_queue';
 
-		// دریافت آیتم‌هایی که وضعیتشان pending است یا failed (کمتر از ۳ بار تلاش)
 		return $wpdb->get_results( $wpdb->prepare(
 			"SELECT * FROM $table_name 
 			 WHERE status = 'pending' 
@@ -87,7 +83,6 @@ class Hub_Queue {
 			'updated_at' => current_time( 'mysql' ),
 		);
 
-		// اگر شکست خورد، تعداد تلاش‌ها را یکی زیاد کن
 		if ( $status === 'failed' ) {
 			$wpdb->query( $wpdb->prepare( "UPDATE $table_name SET attempts = attempts + 1 WHERE id = %d", $id ) );
 		}

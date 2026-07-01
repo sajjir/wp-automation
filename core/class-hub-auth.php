@@ -11,7 +11,6 @@ class Hub_Auth {
 		add_action( 'wp_ajax_hub_verify_otp', array( __CLASS__, 'handle_verify_otp' ) );
 		add_action( 'wp_ajax_nopriv_hub_verify_otp', array( __CLASS__, 'handle_verify_otp' ) );
 
-        // هوک جدید برای تکمیل ثبت‌نام
         add_action( 'wp_ajax_hub_complete_register', array( __CLASS__, 'handle_complete_register' ) );
 		add_action( 'wp_ajax_nopriv_hub_complete_register', array( __CLASS__, 'handle_complete_register' ) );
         
@@ -110,7 +109,7 @@ class Hub_Auth {
                     <input type="email" id="hub-email" placeholder="ایمیل (example@gmail.com)" dir="ltr">
                 </div>
 
-<button type="button" id="hub-btn-register" class="hub-btn">ثبت اطلاعات و ورود</button>
+                <button type="button" id="hub-btn-register" class="hub-btn">ثبت اطلاعات و ورود</button>
                 <div class="hub-footer-row">
                     <a href="#" id="hub-btn-cancel-register" class="hub-link-back">انصراف و تغییر شماره</a>
                 </div>
@@ -122,7 +121,6 @@ class Hub_Auth {
 		return ob_get_clean();
 	}
 
-    // --- هندلر ۱: ارسال کد ---
     public static function handle_send_otp() {
 		if ( ! check_ajax_referer( 'hub_auth_nonce', 'nonce', false ) ) wp_send_json_error( 'خطای امنیتی.' );
         
@@ -146,7 +144,6 @@ class Hub_Auth {
 		wp_send_json_success( 'کد تایید ارسال شد.' );
 	}
 
-    // --- هندلر ۲: بررسی کد ---
 	public static function handle_verify_otp() {
 		if ( ! check_ajax_referer( 'hub_auth_nonce', 'nonce', false ) ) wp_send_json_error( 'خطای امنیتی.' );
 		
@@ -158,17 +155,13 @@ class Hub_Auth {
         $cached_otp = get_transient( 'hub_otp_code_' . $phone );
         if ( empty($cached_otp) || $cached_otp != $otp_user ) wp_send_json_error( 'کد تایید اشتباه است.' );
 
-        // جستجوی کاربر
         $user = self::get_user_by_phone( $phone );
 
         if ( $user ) {
-            // کاربر وجود دارد -> لاگین کن
             self::login_user( $user, $client_redirect );
         } else {
-            // کاربر وجود ندارد -> ثبت نام لازم است
-            // شماره را به عنوان "وریفای شده" علامت می‌زنیم تا در مرحله بعد استفاده شود
-            set_transient( 'hub_verified_phone_' . $phone, true, 10 * 60 ); // ۱۰ دقیقه اعتبار
-            delete_transient( 'hub_otp_code_' . $phone ); // کد مصرف شد
+            set_transient( 'hub_verified_phone_' . $phone, true, 10 * 60 );
+            delete_transient( 'hub_otp_code_' . $phone );
 
             wp_send_json_success( array( 
                 'action' => 'register_required',
@@ -177,7 +170,6 @@ class Hub_Auth {
         }
 	}
 
-    // --- هندلر ۳: تکمیل ثبت‌نام (جدید) ---
     public static function handle_complete_register() {
         if ( ! check_ajax_referer( 'hub_auth_nonce', 'nonce', false ) ) wp_send_json_error( 'خطای امنیتی.' );
 
@@ -189,22 +181,18 @@ class Hub_Auth {
         $email = sanitize_email($_POST['email']);
         $client_redirect = isset($_POST['redirect_to']) ? esc_url_raw($_POST['redirect_to']) : '';
 
-        // اعتبار سنجی
         if ( empty($fname) || empty($lname) ) wp_send_json_error( 'نام و نام خانوادگی الزامی است.' );
         if ( !is_email($email) ) wp_send_json_error( 'ایمیل وارد شده معتبر نیست.' );
         if ( email_exists($email) ) wp_send_json_error( 'این ایمیل قبلاً ثبت شده است.' );
 
-        // بررسی اینکه آیا این شماره واقعاً وریفای شده است؟
         if ( ! get_transient( 'hub_verified_phone_' . $phone ) ) {
             wp_send_json_error( 'نشست شما منقضی شده است. لطفاً مجدد تلاش کنید.' );
         }
 
-        // ساخت کاربر
         $user_id = wp_create_user( $phone, wp_generate_password(), $email );
         
         if ( is_wp_error( $user_id ) ) wp_send_json_error( $user_id->get_error_message() );
 
-        // ذخیره مشخصات
         $user = new WP_User( $user_id );
         $user->set_role( 'customer' );
         
@@ -217,19 +205,15 @@ class Hub_Auth {
 
         do_action( 'user_register', $user_id );
         
-        // پاک کردن ترنزینت و لاگین
         delete_transient( 'hub_verified_phone_' . $phone );
         self::login_user( $user, $client_redirect );
     }
-
-    // --- توابع کمکی ---
 
     private static function login_user( $user, $client_redirect ) {
         wp_clear_auth_cookie();
         wp_set_current_user( $user->ID );
         wp_set_auth_cookie( $user->ID, true );
         
-        // سینک سفارشات مهمان
         $phone = get_user_meta($user->ID, 'billing_phone', true);
         if($phone) self::sync_guest_orders($user->ID, $phone);
 
@@ -247,11 +231,9 @@ class Hub_Auth {
     }
 
     private static function get_user_by_phone( $phone ) {
-        // جستجو بر اساس متای billing_phone
         $users = get_users( array('meta_key' => 'billing_phone', 'meta_value' => $phone, 'number' => 1) );
         if ( ! empty( $users ) ) return $users[0];
         
-        // جستجو بر اساس نام کاربری (اگر شماره موبایل نام کاربری باشد)
         if ( username_exists( $phone ) ) {
             return get_user_by( 'login', $phone );
         }

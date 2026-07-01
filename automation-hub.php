@@ -43,11 +43,14 @@ function hub_load_classes() {
     require_once HUB_PLUGIN_DIR . 'core/class-hub-security.php';
     require_once HUB_PLUGIN_DIR . 'core/class-hub-queue.php';
     require_once HUB_PLUGIN_DIR . 'core/class-hub-bridge.php';
-    require_once HUB_PLUGIN_DIR . 'core/class-hub-auth.php'; // <--- کلاس احراز هویت
+    require_once HUB_PLUGIN_DIR . 'core/class-hub-auth.php'; // کلاس احراز هویت
     require_once HUB_PLUGIN_DIR . 'core/class-hub-sender.php';
     
-    // رابط کاربری و ویجت‌ها
-    require_once HUB_PLUGIN_DIR . 'integrations/class-persian-wc.php';
+    // رابط کاربری و ویجت‌ها (اصلاح شد: با شرط بررسی وجود فایل جهت جلوگیری از خطای بحرانی)
+    if ( file_exists( HUB_PLUGIN_DIR . 'integrations/class-persian-wc.php' ) ) {
+        require_once HUB_PLUGIN_DIR . 'integrations/class-persian-wc.php';
+    }
+    
     require_once HUB_PLUGIN_DIR . 'admin/class-hub-admin.php';
     
     if ( file_exists( HUB_PLUGIN_DIR . 'modules/dashboard-widget/class-hub-widget.php' ) ) {
@@ -66,7 +69,7 @@ function hub_init_plugin() {
     // ب) شروع به کار ماژول‌ها
     if ( class_exists( 'Hub_Bridge' ) ) Hub_Bridge::init(); // گوش دادن به رویدادها
     if ( class_exists( 'Hub_Admin' ) ) Hub_Admin::init();   // ساخت منوی ادمین
-    if ( class_exists( 'Hub_Auth' ) ) Hub_Auth::init();     // <--- سیستم لاگین (حیاتی برای شورت‌کد)
+    if ( class_exists( 'Hub_Auth' ) ) Hub_Auth::init();     // سیستم لاگین (حیاتی برای شورت‌کد)
     
     // ج) ویجت داشبورد
     if ( class_exists( 'Hub_Widget' ) ) {
