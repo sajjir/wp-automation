@@ -19,8 +19,8 @@ class Hub_Admin {
 			return;
 		}
 		
-		// لود فایل‌های استایل و جاوااسکریپت (دقت کنید پوشه css مستقیما داخل admin باشد)
-		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
+		// مسیر دقیق لود فایل‌ها بر اساس ساختار پوشه‌های شما
+		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/js/css/hub-admin.css', array(), HUB_VERSION );
 		wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
 	}
 
@@ -41,15 +41,18 @@ class Hub_Admin {
 		?>
 		<div class="wrap hub-wrap rtl">
 			<div class="hub-header-main">
-				<h1>⚙️ اتوماسیون هاب <span class="hub-badge">پرو ۲.۰</span></h1>
-				<p class="hub-subtitle">سیستم هوشمند اتوماسیون و اطلاع‌رسانی چندکاناله وردپرس</p>
+				<div class="hub-header-content">
+					<h1><span class="dashicons dashicons-networking"></span> اتوماسیون هاب <span class="hub-badge">پرو ۲.۰</span></h1>
+					<p class="hub-subtitle">سیستم هوشمند اتوماسیون و اطلاع‌رسانی چندکاناله فروشگاه شما</p>
+				</div>
 			</div>
 
 			<h2 class="nav-tab-wrapper hub-nav-tabs">
-				<a href="?page=automation-hub&tab=campaigns" class="nav-tab <?php echo $active_tab == 'campaigns' ? 'nav-tab-active' : ''; ?>">📋 سناریوهای اتوماسیون</a>
-				<a href="?page=automation-hub&tab=connections" class="nav-tab <?php echo $active_tab == 'connections' ? 'nav-tab-active' : ''; ?>">🔌 مدیریت کانال‌ها</a>
+				<a href="?page=automation-hub&tab=campaigns" class="nav-tab <?php echo $active_tab == 'campaigns' ? 'nav-tab-active' : ''; ?>">📋 مدیریت سناریوها (Rules)</a>
+				<a href="?page=automation-hub&tab=connections" class="nav-tab <?php echo $active_tab == 'connections' ? 'nav-tab-active' : ''; ?>">🔌 اتصالات و کانال‌ها (Providers)</a>
 			</h2>
 
+			<!-- فرم یکپارچه با مدیریت ذخیره‌سازی هوشمند -->
 			<form method="POST" action="" class="hub-form-container">
 				<?php
 				wp_nonce_field( 'hub_save_nonce', 'hub_nonce' );
@@ -75,8 +78,11 @@ class Hub_Admin {
 		?>
 		<div class="hub-tab-content">
 			<div class="hub-actions-top">
-				<button type="button" id="btn-add-new-rule" class="hub-btn hub-btn-primary">➕ افزودن سناریوی جدید</button>
-				<button type="submit" name="hub_save_rules" class="hub-btn hub-btn-success">💾 ذخیره سناریوها</button>
+				<div class="hub-top-text">سناریوهای خود را بسازید تا فرآیندهای سایت به صورت خودکار اجرا شوند.</div>
+				<div class="hub-top-buttons">
+					<button type="button" id="btn-add-new-rule" class="hub-btn hub-btn-primary"><span class="dashicons dashicons-plus-alt2"></span> افزودن سناریو</button>
+					<button type="submit" name="hub_save_rules" class="hub-btn hub-btn-success"><span class="dashicons dashicons-saved"></span> ذخیره سناریوها</button>
+				</div>
 			</div>
 
 			<div id="rules-repeater-container">
@@ -86,12 +92,13 @@ class Hub_Admin {
 						$this->render_rule_row( $rule, $index, $webhooks );
 					}
 				} else {
-					echo '<div class="hub-empty-state"><p>هیچ سناریویی یافت نشد. برای شروع، روی دکمه "افزودن سناریوی جدید" کلیک کنید.</p></div>';
+					echo '<div class="hub-empty-state"><span class="dashicons dashicons-media-document"></span><h3>هیچ سناریویی یافت نشد</h3><p>برای شروع، روی دکمه "افزودن سناریو" کلیک کنید.</p></div>';
 				}
 				?>
 			</div>
 		</div>
 
+		<!-- قالب مخفی برای جاوااسکریپت -->
 		<script type="text/template" id="rule-template">
 			<?php $this->render_rule_row( array(), '{{RULE_INDEX}}', $webhooks, true ); ?>
 		</script>
@@ -113,16 +120,19 @@ class Hub_Admin {
 		<div class="<?php echo $row_class; ?>" <?php echo $attr_index; ?>>
 			<div class="hub-card-header">
 				<div class="hub-card-title">
-					<span class="dashicons dashicons-controls-repeat"></span>
+					<span class="dashicons dashicons-controls-repeat hub-icon-muted"></span>
 					<input type="text" name="<?php echo $input_prefix; ?>[name]" value="<?php echo esc_attr($name); ?>" class="hub-input-title txt-rule-name-input" placeholder="عنوان سناریو (مثلا: پیگیری سبد خرید)" required />
 				</div>
-				<button type="button" class="hub-btn-icon remove-row" title="حذف سناریو"><span class="dashicons dashicons-trash"></span></button>
+				<button type="button" class="hub-btn-icon-danger remove-row" title="حذف سناریو"><span class="dashicons dashicons-trash"></span></button>
 			</div>
 			
 			<div class="hub-card-body">
 				<!-- بخش رویداد (Trigger) -->
 				<div class="hub-section">
-					<h4 class="hub-section-title">۱. رویداد شروع (Trigger)</h4>
+					<div class="hub-section-header">
+						<span class="hub-step-number">۱</span>
+						<h4 class="hub-section-title">رویداد شروع (Trigger)</h4>
+					</div>
 					<div class="hub-grid-2">
 						<div class="hub-form-group">
 							<label>نوع رویداد</label>
@@ -147,10 +157,10 @@ class Hub_Admin {
 								</select>
 							</div>
 							<div class="cond-box cond-winback_user <?php echo $trigger == 'winback_user' ? '' : 'hidden-box'; ?>">
-								<div class="hub-input-group">
-									<span>پس از</span>
-									<input type="number" name="<?php echo $input_prefix; ?>[sub_trigger_winback]" value="<?php echo esc_attr($sub_trigger); ?>" class="hub-input-small" />
-									<span>روز عدم ورود</span>
+								<div class="hub-input-addon">
+									<span class="addon-text">پس از</span>
+									<input type="number" name="<?php echo $input_prefix; ?>[sub_trigger_winback]" value="<?php echo esc_attr($sub_trigger); ?>" class="hub-input" style="width:80px; text-align:center;" />
+									<span class="addon-text">روز عدم ورود</span>
 								</div>
 							</div>
 						</div>
@@ -159,11 +169,14 @@ class Hub_Admin {
 
 				<!-- بخش شروط (Conditions) -->
 				<div class="hub-section hub-bg-light">
-					<h4 class="hub-section-title">۲. شروط هوشمند (Conditions)</h4>
+					<div class="hub-section-header">
+						<span class="hub-step-number">۲</span>
+						<h4 class="hub-section-title">شروط هوشمند (Conditions)</h4>
+					</div>
 					<div class="hub-form-group">
 						<label class="hub-inline-label">
 							اجرای اقدامات در صورتی که: 
-							<select name="<?php echo $input_prefix; ?>[condition_logic]" class="hub-select-small">
+							<select name="<?php echo $input_prefix; ?>[condition_logic]" class="hub-select" style="width: auto; display: inline-block;">
 								<option value="AND" <?php selected($condition_logic, 'AND'); ?>>همه شروط زیر برقرار باشند (AND)</option>
 								<option value="OR" <?php selected($condition_logic, 'OR'); ?>>حداقل یکی از شروط زیر برقرار باشد (OR)</option>
 							</select>
@@ -174,20 +187,23 @@ class Hub_Admin {
 						<?php 
 						if(is_array($conditions) && !empty($conditions)){
 							foreach($conditions as $c_idx => $cond){
+								$c_field    = isset($cond['field']) ? $cond['field'] : '';
+								$c_operator = isset($cond['operator']) ? $cond['operator'] : '';
+								$c_val      = isset($cond['value']) ? $cond['value'] : '';
 								?>
 								<div class="hub-condition-row">
 									<select name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][field]" class="hub-select">
-										<option value="order_total" <?php selected($cond['field'], 'order_total'); ?>>جمع کل سفارش</option>
-										<option value="billing_city" <?php selected($cond['field'], 'billing_city'); ?>>شهر صورتحساب</option>
-										<option value="user_role" <?php selected($cond['field'], 'user_role'); ?>>نقش کاربری</option>
+										<option value="order_total" <?php selected($c_field, 'order_total'); ?>>جمع کل سفارش</option>
+										<option value="billing_city" <?php selected($c_field, 'billing_city'); ?>>شهر صورتحساب</option>
+										<option value="user_role" <?php selected($c_field, 'user_role'); ?>>نقش کاربری</option>
 									</select>
 									<select name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][operator]" class="hub-select">
-										<option value="equals" <?php selected($cond['operator'], 'equals'); ?>>برابر با</option>
-										<option value="not_equals" <?php selected($cond['operator'], 'not_equals'); ?>>مخالف با</option>
-										<option value="greater_than" <?php selected($cond['operator'], 'greater_than'); ?>>بزرگتر از</option>
-										<option value="contains" <?php selected($cond['operator'], 'contains'); ?>>شامل عبارت</option>
+										<option value="equals" <?php selected($c_operator, 'equals'); ?>>برابر با</option>
+										<option value="not_equals" <?php selected($c_operator, 'not_equals'); ?>>مخالف با</option>
+										<option value="greater_than" <?php selected($c_operator, 'greater_than'); ?>>بزرگتر از</option>
+										<option value="contains" <?php selected($c_operator, 'contains'); ?>>شامل عبارت</option>
 									</select>
-									<input type="text" name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][value]" value="<?php echo esc_attr($cond['value']); ?>" class="hub-input" placeholder="مقدار ارزیابی..." />
+									<input type="text" name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][value]" value="<?php echo esc_attr($c_val); ?>" class="hub-input" placeholder="مقدار ارزیابی..." />
 									<button type="button" class="hub-btn-icon-danger btn-remove-condition"><span class="dashicons dashicons-no"></span></button>
 								</div>
 								<?php
@@ -195,24 +211,32 @@ class Hub_Admin {
 						}
 						?>
 					</div>
-					<button type="button" class="hub-btn hub-btn-outline btn-add-condition" style="margin-top: 10px;">+ افزودن شرط</button>
+					<button type="button" class="hub-btn hub-btn-outline btn-add-condition" style="margin-top: 15px;"><span class="dashicons dashicons-plus"></span> افزودن شرط</button>
 				</div>
 
 				<!-- بخش اقدامات (Actions) -->
 				<div class="hub-section">
-					<h4 class="hub-section-title">۳. اقدامات اجرایی (Actions)</h4>
+					<div class="hub-section-header">
+						<span class="hub-step-number">۳</span>
+						<h4 class="hub-section-title">اقدامات اجرایی (Actions)</h4>
+					</div>
 					<div class="actions-holder-rows">
 						<?php 
 						if(is_array($actions) && !empty($actions)){
 							foreach($actions as $a_idx => $act){
-								$act_id = $act['id'];
-								$act_prefix = $input_prefix . "[actions][$a_idx]";
+								$act_id      = isset($act['id']) ? $act['id'] : uniqid();
+								$act_prefix  = $input_prefix . "[actions][$a_idx]";
+								$act_type    = isset($act['type']) ? $act['type'] : 'sms';
 								$conn_id_val = isset($act['connection_id']) ? $act['connection_id'] : '';
+								$act_msg     = isset($act['message']) ? $act['message'] : '';
+								$d_enabled   = !empty($act['delay']['enabled']);
+								$d_val       = isset($act['delay']['value']) ? $act['delay']['value'] : 0;
+								$d_unit      = isset($act['delay']['unit']) ? $act['delay']['unit'] : 'minutes';
 								?>
 								<div class="hub-action-card">
 									<div class="hub-action-header">
-										<strong>اقدام #<?php echo esc_html($act_id); ?></strong>
-										<button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-no"></span></button>
+										<div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> اقدام #<?php echo esc_html($act_id); ?></div>
+										<button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-trash"></span></button>
 									</div>
 									<input type="hidden" name="<?php echo $act_prefix; ?>[id]" value="<?php echo esc_attr($act_id); ?>" />
 									
@@ -220,12 +244,12 @@ class Hub_Admin {
 										<div class="hub-form-group">
 											<label>نوع اقدام</label>
 											<select name="<?php echo $act_prefix; ?>[type]" class="hub-select action-type-selector">
-												<option value="sms" <?php selected($act['type'], 'sms'); ?>>ارسال پیامک (SMS)</option>
-												<option value="telegram" <?php selected($act['type'], 'telegram'); ?>>ارسال به تلگرام</option>
-												<option value="n8n" <?php selected($act['type'], 'n8n'); ?>>ارسال به n8n (وب‌هوک)</option>
-												<option value="email" <?php selected($act['type'], 'email'); ?>>ارسال ایمیل (SMTP)</option>
-												<option value="order_note" <?php selected($act['type'], 'order_note'); ?>>داخلی - ثبت یادداشت سفارش</option>
-												<option value="order_status" <?php selected($act['type'], 'order_status'); ?>>داخلی - تغییر وضعیت سفارش</option>
+												<option value="sms" <?php selected($act_type, 'sms'); ?>>ارسال پیامک (SMS)</option>
+												<option value="telegram" <?php selected($act_type, 'telegram'); ?>>ارسال به تلگرام</option>
+												<option value="n8n" <?php selected($act_type, 'n8n'); ?>>ارسال به n8n (وب‌هوک)</option>
+												<option value="email" <?php selected($act_type, 'email'); ?>>ارسال ایمیل (SMTP)</option>
+												<option value="order_note" <?php selected($act_type, 'order_note'); ?>>داخلی - ثبت یادداشت سفارش</option>
+												<option value="order_status" <?php selected($act_type, 'order_status'); ?>>داخلی - تغییر وضعیت سفارش</option>
 											</select>
 										</div>
 										<div class="hub-form-group">
@@ -233,7 +257,7 @@ class Hub_Admin {
 											<select name="<?php echo $act_prefix; ?>[connection_id]" class="hub-select">
 												<option value="">-- کانال پیشفرض --</option>
 												<?php foreach($webhooks as $w_key => $w_val): ?>
-													<option value="<?php echo esc_attr($w_key); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html($w_val['name']); ?></option>
+													<option value="<?php echo esc_attr($w_key); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html(isset($w_val['name']) ? $w_val['name'] : $w_key); ?></option>
 												<?php endforeach; ?>
 											</select>
 										</div>
@@ -241,23 +265,26 @@ class Hub_Admin {
 									
 									<div class="hub-form-group">
 										<label>محتوای پیام</label>
-										<textarea name="<?php echo $act_prefix; ?>[message]" class="hub-textarea" rows="3"><?php echo esc_textarea($act['message']); ?></textarea>
-										<p class="hub-help-text">متغیرهای مجاز: <code>{order_id}</code>, <code>{total}</code>, <code>{full_name}</code>, <code>{phone}</code></p>
+										<textarea name="<?php echo $act_prefix; ?>[message]" class="hub-textarea" rows="3"><?php echo esc_textarea($act_msg); ?></textarea>
+										<div class="hub-tags-help">
+											متغیرهای مجاز: <code>{order_id}</code> <code>{total}</code> <code>{full_name}</code> <code>{phone}</code>
+										</div>
 									</div>
 
 									<div class="hub-delay-box">
 										<label class="hub-checkbox-label">
-											<input type="checkbox" name="<?php echo $act_prefix; ?>[delay][enabled]" value="1" <?php checked(!empty($act['delay']['enabled']), true); ?> class="chk-delay-toggle" />
+											<input type="checkbox" name="<?php echo $act_prefix; ?>[delay][enabled]" value="1" <?php checked($d_enabled, true); ?> class="chk-delay-toggle" />
+											<span class="hub-toggle-slider"></span>
 											اجرای با تاخیر (زمان‌بندی شده)
 										</label>
-										<div class="delay-values-wrapper <?php echo !empty($act['delay']['enabled']) ? '' : 'hidden-box'; ?>">
-											<input type="number" name="<?php echo $act_prefix; ?>[delay][value]" value="<?php echo esc_attr(isset($act['delay']['value'])?$act['delay']['value']:0); ?>" class="hub-input-small" />
-											<select name="<?php echo $act_prefix; ?>[delay][unit]" class="hub-select-small">
-												<option value="minutes" <?php selected(isset($act['delay']['unit'])?$act['delay']['unit']:'', 'minutes'); ?>>دقیقه</option>
-												<option value="hours" <?php selected(isset($act['delay']['unit'])?$act['delay']['unit']:'', 'hours'); ?>>ساعت</option>
-												<option value="days" <?php selected(isset($act['delay']['unit'])?$act['delay']['unit']:'', 'days'); ?>>روز</option>
+										<div class="delay-values-wrapper <?php echo $d_enabled ? '' : 'hidden-box'; ?>">
+											<input type="number" name="<?php echo $act_prefix; ?>[delay][value]" value="<?php echo esc_attr($d_val); ?>" class="hub-input" style="width:80px;" />
+											<select name="<?php echo $act_prefix; ?>[delay][unit]" class="hub-select" style="width:120px;">
+												<option value="minutes" <?php selected($d_unit, 'minutes'); ?>>دقیقه</option>
+												<option value="hours" <?php selected($d_unit, 'hours'); ?>>ساعت</option>
+												<option value="days" <?php selected($d_unit, 'days'); ?>>روز</option>
 											</select>
-											<span>پس از وقوع رویداد</span>
+											<span class="hub-text-muted">پس از وقوع رویداد</span>
 										</div>
 									</div>
 								</div>
@@ -266,7 +293,7 @@ class Hub_Admin {
 						}
 						?>
 					</div>
-					<button type="button" class="hub-btn hub-btn-secondary btn-add-action-node" style="margin-top:10px;">+ افزودن اقدام اجرایی</button>
+					<button type="button" class="hub-btn hub-btn-secondary btn-add-action-node" style="margin-top:15px;"><span class="dashicons dashicons-plus"></span> افزودن اقدام اجرایی</button>
 				</div>
 			</div>
 		</div>
@@ -275,7 +302,7 @@ class Hub_Admin {
 
 	/**
 	 * ==========================================
-	 * تب دوم: مدیریت کانال‌ها (Webhooks)
+	 * تب دوم: مدیریت کانال‌ها (Webhooks/Providers)
 	 * ==========================================
 	 */
 	private function render_connections_tab() {
@@ -283,8 +310,11 @@ class Hub_Admin {
 		?>
 		<div class="hub-tab-content">
 			<div class="hub-actions-top">
-				<button type="button" id="btn-add-new-webhook" class="hub-btn hub-btn-primary">➕ افزودن کانال جدید</button>
-				<button type="submit" name="hub_save_webhooks" class="hub-btn hub-btn-success">💾 ذخیره کانال‌ها</button>
+				<div class="hub-top-text">پروایدرها و درگاه‌های ارتباطی خود (مثل پیامک، تلگرام، n8n) را در اینجا تنظیم کنید.</div>
+				<div class="hub-top-buttons">
+					<button type="button" id="btn-add-new-webhook" class="hub-btn hub-btn-primary"><span class="dashicons dashicons-plus-alt2"></span> افزودن کانال</button>
+					<button type="submit" name="hub_save_webhooks" class="hub-btn hub-btn-success"><span class="dashicons dashicons-saved"></span> ذخیره کانال‌ها</button>
+				</div>
 			</div>
 
 			<div id="webhooks-repeater-container">
@@ -296,12 +326,13 @@ class Hub_Admin {
 						$index++;
 					}
 				} else {
-					echo '<div class="hub-empty-state"><p>هیچ کانال ارتباطی تنظیم نشده است. هم‌اکنون اولین کانال خود را بسازید.</p></div>';
+					echo '<div class="hub-empty-state"><span class="dashicons dashicons-admin-network"></span><h3>هیچ کانالی یافت نشد</h3><p>هم‌اکنون اولین ارائه‌دهنده (Provider) خود را تعریف کنید.</p></div>';
 				}
 				?>
 			</div>
 		</div>
 
+		<!-- قالب مخفی کانال‌ها -->
 		<script type="text/template" id="webhook-template">
 			<?php $this->render_webhook_row( array(), '{{WH_INDEX}}', true ); ?>
 		</script>
@@ -329,26 +360,26 @@ class Hub_Admin {
 		<div class="<?php echo $row_class; ?>" <?php echo $attr_index; ?>>
 			<div class="hub-card-header">
 				<div class="hub-card-title">
-					<span class="dashicons dashicons-admin-network"></span>
-					<strong>تنظیمات اتصال</strong>
+					<span class="dashicons dashicons-admin-links hub-icon-muted"></span>
+					<strong>تنظیمات اتصال ارائه‌دهنده</strong>
 				</div>
-				<button type="button" class="hub-btn-icon remove-webhook-row" title="حذف کانال"><span class="dashicons dashicons-trash"></span></button>
+				<button type="button" class="hub-btn-icon-danger remove-webhook-row" title="حذف کانال"><span class="dashicons dashicons-trash"></span></button>
 			</div>
 			
 			<div class="hub-card-body">
 				<div class="hub-grid-2">
 					<div class="hub-form-group">
-						<label>نام کانال (برای تشخیص)</label>
-						<input type="text" name="<?php echo $input_prefix; ?>[name]" value="<?php echo esc_attr($name); ?>" class="hub-input" placeholder="مثلا: پنل ملی پیامک شماره ۱" required />
+						<label>نام کانال (شناسه داخلی)</label>
+						<input type="text" name="<?php echo $input_prefix; ?>[name]" value="<?php echo esc_attr($name); ?>" class="hub-input" placeholder="مثلا: پنل پیامک ۱" required />
 					</div>
 					<div class="hub-form-group">
-						<label>ارائه‌دهنده (Provider)</label>
+						<label>پلتفرم ارائه‌دهنده (Provider)</label>
 						<select name="<?php echo $input_prefix; ?>[type]" class="hub-select webhook-type-selector">
 							<option value="melipayamak" <?php selected($type, 'melipayamak'); ?>>ملی‌پیامک (SMS)</option>
 							<option value="telegram" <?php selected($type, 'telegram'); ?>>تلگرام (Telegram Bot)</option>
 							<option value="n8n" <?php selected($type, 'n8n'); ?>>n8n (Webhook)</option>
 							<option value="google_sheet" <?php selected($type, 'google_sheet'); ?>>گوگل شیت (Webhook)</option>
-							<option value="email" <?php selected($type, 'email'); ?>>ایمیل (SMTP وردپرس)</option>
+							<option value="email" <?php selected($type, 'email'); ?>>ایمیل (SMTP سایت)</option>
 							<option value="whatsapp" <?php selected($type, 'whatsapp'); ?>>واتساپ (Cloud API)</option>
 							<option value="slack" <?php selected($type, 'slack'); ?>>اسلک (Slack Webhook)</option>
 							<option value="discord" <?php selected($type, 'discord'); ?>>دیسکورد (Discord Webhook)</option>
@@ -363,15 +394,15 @@ class Hub_Admin {
 						<div class="hub-grid-3">
 							<div class="hub-form-group">
 								<label>نام کاربری پنل</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[username]" value="<?php echo esc_attr($username); ?>" class="hub-input" dir="ltr" />
+								<input type="text" name="<?php echo $input_prefix; ?>[username]" value="<?php echo esc_attr($username); ?>" class="hub-input ltr-input" />
 							</div>
 							<div class="hub-form-group">
 								<label>رمز عبور پنل</label>
-								<input type="password" name="<?php echo $input_prefix; ?>[password]" value="<?php echo esc_attr($password); ?>" class="hub-input" dir="ltr" />
+								<input type="password" name="<?php echo $input_prefix; ?>[password]" value="<?php echo esc_attr($password); ?>" class="hub-input ltr-input" />
 							</div>
 							<div class="hub-form-group">
 								<label>شماره خط فرستنده</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[from_number]" value="<?php echo esc_attr($from_number); ?>" class="hub-input" dir="ltr" />
+								<input type="text" name="<?php echo $input_prefix; ?>[from_number]" value="<?php echo esc_attr($from_number); ?>" class="hub-input ltr-input" placeholder="مثلا: 1000xxxx" />
 							</div>
 						</div>
 					</div>
@@ -381,40 +412,45 @@ class Hub_Admin {
 						<div class="hub-grid-2">
 							<div class="hub-form-group">
 								<label>توکن ربات (Bot Token)</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[token]" value="<?php echo esc_attr($token); ?>" class="hub-input" dir="ltr" />
+								<input type="text" name="<?php echo $input_prefix; ?>[token]" value="<?php echo esc_attr($token); ?>" class="hub-input ltr-input" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
 							</div>
 							<div class="hub-form-group">
-								<label>شناسه چت دیفالت (Chat ID)</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[chat_id]" value="<?php echo esc_attr($chat_id); ?>" class="hub-input" dir="ltr" />
+								<label>شناسه چت پیشفرض (Chat ID)</label>
+								<input type="text" name="<?php echo $input_prefix; ?>[chat_id]" value="<?php echo esc_attr($chat_id); ?>" class="hub-input ltr-input" placeholder="آیدی عددی کانال یا کاربر" />
 							</div>
 						</div>
 					</div>
 
-					<!-- Webhook URLs (n8n, Google Sheet, Slack, Discord) -->
+					<!-- Webhook URLs -->
 					<div class="wh-field wh-webhook-url" style="display:none;">
 						<div class="hub-form-group">
 							<label>آدرس وب‌هوک (Webhook URL)</label>
-							<input type="url" name="<?php echo $input_prefix; ?>[url]" value="<?php echo esc_attr($url); ?>" class="hub-input" dir="ltr" placeholder="https://..." />
+							<input type="url" name="<?php echo $input_prefix; ?>[url]" value="<?php echo esc_attr($url); ?>" class="hub-input ltr-input" placeholder="https://..." />
 						</div>
 					</div>
 
 					<!-- Email Field -->
 					<div class="wh-field wh-email" style="display:none;">
 						<div class="hub-info-box">
-							<span class="dashicons dashicons-email"></span>
-							<p>برای ایمیل نیاز به تنظیمات اضافه‌ای نیست و از سیستم ایمیل داخلی سایت شما استفاده می‌شود.</p>
+							<span class="dashicons dashicons-email-alt"></span>
+							<div>
+								<strong>اتصال ایمیل داخلی</strong>
+								<p>برای ایمیل نیاز به تنظیمات اضافه‌ای نیست. افزونه از سیستم wp_mail وردپرس شما برای ارسال استفاده خواهد کرد.</p>
+							</div>
 						</div>
 					</div>
 
 					<!-- WhatsApp Fields -->
 					<div class="wh-field wh-whatsapp" style="display:none;">
-						<div class="hub-form-group">
-							<label>شناسه شماره تلفن (Phone Number ID)</label>
-							<input type="text" name="<?php echo $input_prefix; ?>[phone_number_id]" value="<?php echo esc_attr($phone_number_id); ?>" class="hub-input" dir="ltr" />
-						</div>
-						<div class="hub-form-group">
-							<label>توکن دسترسی دائم (Access Token)</label>
-							<input type="text" name="<?php echo $input_prefix; ?>[access_token]" value="<?php echo esc_attr($access_token); ?>" class="hub-input" dir="ltr" />
+						<div class="hub-grid-2">
+							<div class="hub-form-group">
+								<label>شناسه شماره تلفن (Phone Number ID)</label>
+								<input type="text" name="<?php echo $input_prefix; ?>[phone_number_id]" value="<?php echo esc_attr($phone_number_id); ?>" class="hub-input ltr-input" />
+							</div>
+							<div class="hub-form-group">
+								<label>توکن دسترسی (Access Token)</label>
+								<input type="text" name="<?php echo $input_prefix; ?>[access_token]" value="<?php echo esc_attr($access_token); ?>" class="hub-input ltr-input" />
+							</div>
 						</div>
 					</div>
 
@@ -423,11 +459,11 @@ class Hub_Admin {
 						<div class="hub-grid-2">
 							<div class="hub-form-group">
 								<label>شناسه اپلیکیشن (App ID)</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[app_id]" value="<?php echo esc_attr($app_id); ?>" class="hub-input" dir="ltr" />
+								<input type="text" name="<?php echo $input_prefix; ?>[app_id]" value="<?php echo esc_attr($app_id); ?>" class="hub-input ltr-input" />
 							</div>
 							<div class="hub-form-group">
 								<label>کلید اتصال (REST API Key)</label>
-								<input type="text" name="<?php echo $input_prefix; ?>[rest_api_key]" value="<?php echo esc_attr($rest_api_key); ?>" class="hub-input" dir="ltr" />
+								<input type="text" name="<?php echo $input_prefix; ?>[rest_api_key]" value="<?php echo esc_attr($rest_api_key); ?>" class="hub-input ltr-input" />
 							</div>
 						</div>
 					</div>
@@ -439,31 +475,31 @@ class Hub_Admin {
 
 	/**
 	 * ==========================================
-	 * پردازش و ذخیره‌سازی مجزای فرم‌ها (رفع باگ ذخیره)
+	 * پردازش و ذخیره‌سازی ایزوله و امن
 	 * ==========================================
 	 */
 	public function save_settings() {
-		// اگر ادمین نیست یا فرم سابمیت نشده کلا خارج شو
 		if ( ! current_user_can( 'manage_options' ) ) return;
-		
-		// 1. ذخیره فرم سناریوها
+		if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) return;
+		if ( ! isset( $_POST['hub_nonce'] ) || ! wp_verify_nonce( $_POST['hub_nonce'], 'hub_save_nonce' ) ) return;
+
+		// 1. ذخیره تب سناریوها
 		if ( isset( $_POST['hub_save_rules'] ) ) {
-			check_admin_referer( 'hub_save_nonce', 'hub_nonce' );
 			$clean_rules = array();
-			if ( isset( $_POST['rules'] ) && is_array( $_POST['rules'] ) ) {
+			if ( ! empty( $_POST['rules'] ) && is_array( $_POST['rules'] ) ) {
 				foreach ( $_POST['rules'] as $rule ) {
-					$trigger = sanitize_text_field( $rule['trigger'] );
+					$trigger = isset($rule['trigger']) ? sanitize_text_field( $rule['trigger'] ) : 'order_status';
 					$sub = '';
-					if ( 'order_status' === $trigger ) $sub = sanitize_text_field( $rule['sub_trigger_order'] );
-					elseif ( 'winback_user' === $trigger ) $sub = sanitize_text_field( $rule['sub_trigger_winback'] );
+					if ( 'order_status' === $trigger ) $sub = isset($rule['sub_trigger_order']) ? sanitize_text_field( $rule['sub_trigger_order'] ) : '';
+					elseif ( 'winback_user' === $trigger ) $sub = isset($rule['sub_trigger_winback']) ? sanitize_text_field( $rule['sub_trigger_winback'] ) : '';
 
 					$clean_conditions = array();
 					if ( isset( $rule['conditions'] ) && is_array( $rule['conditions'] ) ) {
 						foreach ( $rule['conditions'] as $cond ) {
 							$clean_conditions[] = array(
-								'field'    => sanitize_text_field( $cond['field'] ),
-								'operator' => sanitize_text_field( $cond['operator'] ),
-								'value'    => sanitize_text_field( $cond['value'] )
+								'field'    => isset($cond['field']) ? sanitize_text_field( $cond['field'] ) : '',
+								'operator' => isset($cond['operator']) ? sanitize_text_field( $cond['operator'] ) : '',
+								'value'    => isset($cond['value']) ? sanitize_text_field( $cond['value'] ) : ''
 							);
 						}
 					}
@@ -472,47 +508,46 @@ class Hub_Admin {
 					if ( isset( $rule['actions'] ) && is_array( $rule['actions'] ) ) {
 						foreach ( $rule['actions'] as $act ) {
 							$clean_actions[] = array(
-								'id'            => sanitize_text_field( $act['id'] ),
-								'type'          => sanitize_text_field( $act['type'] ),
-								'connection_id' => isset( $act['connection_id'] ) ? sanitize_text_field( $act['connection_id'] ) : '',
-								'target_mode'   => isset( $act['target_mode'] ) ? sanitize_text_field( $act['target_mode'] ) : 'custom',
-								'target_value'  => isset( $act['target_value'] ) ? sanitize_text_field( $act['target_value'] ) : '',
-								'message'       => wp_kses_post( $act['message'] ),
+								'id'            => isset($act['id']) ? sanitize_text_field( $act['id'] ) : uniqid(),
+								'type'          => isset($act['type']) ? sanitize_text_field( $act['type'] ) : '',
+								'connection_id' => isset($act['connection_id']) ? sanitize_text_field( $act['connection_id'] ) : '',
+								'target_mode'   => isset($act['target_mode']) ? sanitize_text_field( $act['target_mode'] ) : 'custom',
+								'target_value'  => isset($act['target_value']) ? sanitize_text_field( $act['target_value'] ) : '',
+								'message'       => isset($act['message']) ? wp_kses_post( $act['message'] ) : '',
 								'delay'         => array(
-									'enabled' => isset( $act['delay']['enabled'] ) ? true : false,
-									'value'   => isset( $act['delay']['value'] ) ? intval( $act['delay']['value'] ) : 0,
-									'unit'    => isset( $act['delay']['unit'] ) ? sanitize_text_field( $act['delay']['unit'] ) : 'minutes',
+									'enabled' => !empty($act['delay']['enabled']),
+									'value'   => isset($act['delay']['value']) ? intval( $act['delay']['value'] ) : 0,
+									'unit'    => isset($act['delay']['unit']) ? sanitize_text_field( $act['delay']['unit'] ) : 'minutes',
 								),
-								'meta'          => isset( $act['meta'] ) ? array_map( 'sanitize_text_field', $act['meta'] ) : array()
+								'meta'          => isset( $act['meta'] ) && is_array($act['meta']) ? array_map( 'sanitize_text_field', $act['meta'] ) : array()
 							);
 						}
 					}
 
 					$clean_rules[] = array(
-						'name'            => sanitize_text_field( $rule['name'] ),
+						'name'            => isset($rule['name']) ? sanitize_text_field( $rule['name'] ) : 'بدون نام',
 						'trigger'         => $trigger,
 						'sub_trigger'     => $sub,
-						'condition_logic' => sanitize_text_field( $rule['condition_logic'] ),
+						'condition_logic' => isset($rule['condition_logic']) ? sanitize_text_field( $rule['condition_logic'] ) : 'AND',
 						'conditions'      => $clean_conditions,
 						'actions'         => $clean_actions
 					);
 				}
 			}
 			update_option( 'hub_rules', $clean_rules );
-			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون با موفقیت بروزرسانی شدند.</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون با موفقیت ذخیره شدند.</p></div>';
 		}
 
-		// 2. ذخیره فرم کانال‌ها
+		// 2. ذخیره تب کانال‌ها
 		if ( isset( $_POST['hub_save_webhooks'] ) ) {
-			check_admin_referer( 'hub_save_nonce', 'hub_nonce' );
 			$clean_webhooks = array();
-			if ( isset( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
+			if ( ! empty( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
 				foreach ( $_POST['webhooks'] as $wh ) {
 					if ( empty( $wh['name'] ) ) continue;
 					$key = sanitize_title( $wh['name'] );
 					$clean_webhooks[ $key ] = array(
 						'name'            => sanitize_text_field( $wh['name'] ),
-						'type'            => sanitize_text_field( $wh['type'] ),
+						'type'            => isset($wh['type']) ? sanitize_text_field( $wh['type'] ) : '',
 						'url'             => !empty($wh['url']) ? esc_url_raw($wh['url']) : '',
 						'username'        => !empty($wh['username']) ? sanitize_text_field( $wh['username'] ) : '',
 						'password'        => !empty($wh['password']) ? sanitize_text_field( $wh['password'] ) : '',
