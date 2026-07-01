@@ -1,31 +1,332 @@
 /**
- * Phase 2 Extended Administration Layout Styles sheets
+ * Modern UI/UX Design System for Automation Hub
  */
-.automation-hub-wrap .hidden-box, 
-.automation-hub-wrap .template-hidden {
+
+ :root {
+    --hub-primary: #4f46e5;
+    --hub-primary-hover: #4338ca;
+    --hub-success: #10b981;
+    --hub-success-hover: #059669;
+    --hub-danger: #ef4444;
+    --hub-danger-hover: #dc2626;
+    --hub-bg: #f3f4f6;
+    --hub-card-bg: #ffffff;
+    --hub-border: #e5e7eb;
+    --hub-text-main: #1f2937;
+    --hub-text-muted: #6b7280;
+    --hub-radius: 8px;
+    --hub-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.hub-wrap {
+    font-family: IRANSans, Tahoma, Arial, sans-serif;
+    color: var(--hub-text-main);
+    margin-top: 20px;
+    max-width: 1200px;
+}
+
+.template-hidden, .hidden-box {
     display: none !important;
 }
 
-.automation-hub-wrap .rule-row {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: all 0.2s ease-in-out;
+/* Header & Tabs */
+.hub-header-main {
+    margin-bottom: 20px;
 }
-
-.automation-hub-wrap .rule-row:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+.hub-header-main h1 {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
-
-.automation-hub-wrap .action-block-item {
-    border-right: 4px solid #0073aa !important;
-}
-
-.automation-hub-wrap .condition-item-block input,
-.automation-hub-wrap .condition-item-block select {
+.hub-badge {
+    background: var(--hub-primary);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 12px;
     vertical-align: middle;
-    margin-left: 5px;
+}
+.hub-subtitle {
+    color: var(--hub-text-muted);
+    font-size: 14px;
+    margin-top: 5px;
+}
+.hub-nav-tabs {
+    border-bottom: 2px solid var(--hub-border);
+    margin-bottom: 20px;
+}
+.hub-nav-tabs .nav-tab {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--hub-text-muted);
+}
+.hub-nav-tabs .nav-tab-active {
+    color: var(--hub-primary);
+    border-bottom: 3px solid var(--hub-primary);
+    background: transparent;
 }
 
-.automation-hub-wrap .form-table th {
+/* Actions Top Bar */
+.hub-actions-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    background: var(--hub-card-bg);
+    padding: 15px;
+    border-radius: var(--hub-radius);
+    box-shadow: var(--hub-shadow);
+    border: 1px solid var(--hub-border);
+}
+
+/* Cards (Rules & Webhooks) */
+.hub-card {
+    background: var(--hub-card-bg);
+    border-radius: var(--hub-radius);
+    box-shadow: var(--hub-shadow);
+    border: 1px solid var(--hub-border);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+.hub-card-header {
+    background: #f9fafb;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--hub-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.hub-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
     font-weight: 600;
-    color: #444;
+    width: 70%;
+}
+.hub-input-title {
+    font-size: 16px !important;
+    font-weight: bold;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    width: 100%;
+    padding: 5px !important;
+}
+.hub-input-title:focus {
+    background: #fff !important;
+    border-bottom: 2px solid var(--hub-primary) !important;
+}
+.hub-card-body {
+    padding: 20px;
+}
+
+/* Inner Sections */
+.hub-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--hub-border);
+}
+.hub-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.hub-section-title {
+    font-size: 15px;
+    color: var(--hub-primary);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+.hub-bg-light {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: var(--hub-radius);
+    border: 1px solid #e2e8f0;
+}
+
+/* Grids & Forms */
+.hub-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+.hub-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+}
+.hub-form-group {
+    margin-bottom: 15px;
+}
+.hub-form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--hub-text-main);
+}
+.hub-input, .hub-select, .hub-textarea {
+    width: 100%;
+    padding: 8px 12px !important;
+    border: 1px solid var(--hub-border) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s;
+}
+.hub-input:focus, .hub-select:focus, .hub-textarea:focus {
+    border-color: var(--hub-primary) !important;
+    outline: none;
+    box-shadow: 0 0 0 1px var(--hub-primary) !important;
+}
+.hub-input-small, .hub-select-small {
+    padding: 4px 8px !important;
+    border: 1px solid var(--hub-border) !important;
+    border-radius: 4px !important;
+}
+.hub-help-text {
+    font-size: 12px;
+    color: var(--hub-text-muted);
+    margin-top: 5px;
+}
+
+/* Sub-components */
+.hub-condition-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--hub-border);
+}
+.hub-action-card {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-right: 4px solid var(--hub-primary);
+    border-radius: var(--hub-radius);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.hub-action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--hub-border);
+}
+.hub-delay-box {
+    background: #fef3c7;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #fde68a;
+    margin-top: 15px;
+}
+.hub-checkbox-label {
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.delay-values-wrapper {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Buttons */
+.hub-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.hub-btn-primary {
+    background: var(--hub-primary);
+    color: #fff;
+}
+.hub-btn-primary:hover {
+    background: var(--hub-primary-hover);
+    color: #fff;
+}
+.hub-btn-success {
+    background: var(--hub-success);
+    color: #fff;
+}
+.hub-btn-success:hover {
+    background: var(--hub-success-hover);
+    color: #fff;
+}
+.hub-btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+.hub-btn-secondary:hover {
+    background: #cbd5e1;
+}
+.hub-btn-outline {
+    background: transparent;
+    border-color: var(--hub-primary);
+    color: var(--hub-primary);
+}
+.hub-btn-outline:hover {
+    background: var(--hub-primary);
+    color: #fff;
+}
+.hub-btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--hub-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+.hub-btn-icon:hover {
+    background: #f3f4f6;
+    color: var(--hub-text-main);
+}
+.hub-btn-icon-danger {
+    background: transparent;
+    border: none;
+    color: var(--hub-danger);
+    cursor: pointer;
+    border-radius: 4px;
+}
+.hub-btn-icon-danger:hover {
+    background: #fee2e2;
+}
+
+/* Info & Empty States */
+.hub-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--hub-card-bg);
+    border: 2px dashed var(--hub-border);
+    border-radius: var(--hub-radius);
+    color: var(--hub-text-muted);
+}
+.hub-info-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #bae6fd;
 }
