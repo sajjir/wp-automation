@@ -11,7 +11,21 @@ class Hub_Admin {
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'save_settings' ) );
+        // اضافه کردن هوک حیاتی برای لود JS و CSS
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
+
+    public function enqueue_admin_assets( $hook ) {
+        // فقط در صفحه اختصاصی اتوماسیون هاب فایل‌ها را لود کن
+        if ( 'toplevel_page_automation-hub' !== $hook ) {
+            return;
+        }
+
+        // لود فایل‌های استایل و جاوااسکریپت
+        // بر اساس ساختار ریپازیتوری شما، مسیر فایل‌ها این‌گونه تنظیم شده است:
+        wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
+        wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
+    }
 
 	public function add_plugin_admin_menu() {
 		add_menu_page(
@@ -72,7 +86,6 @@ class Hub_Admin {
 			</p>
 		</div>
 
-		<!-- UI MASTER CLONE ARCHITECTURE TEMPLATES -->
 		<script type="text/template" id="rule-template">
 			<?php $this->render_rule_row( array(), '{{RULE_INDEX}}', $webhooks, true ); ?>
 		</script>
@@ -133,7 +146,6 @@ class Hub_Admin {
 			</table>
 
 			<hr />
-			<!-- SECTION 4: SMART CONDITIONAL LOGIC GRID -->
 			<h4>🎯 شروط هوشمند پردازش (Conditional Logic)</h4>
 			<div class="conditions-grid-wrapper">
 				<div class="logic-header" style="margin-bottom:10px;">
@@ -171,7 +183,6 @@ class Hub_Admin {
 			</div>
 
 			<hr />
-			<!-- SECTION 1: DYNAMIC ACTION GRID ARCHITECTURE -->
 			<h4>⚡ اقدامات و خروجی‌ها (Actions Grid)</h4>
 			<div class="actions-grid-wrapper" style="background:#f4f4f4; padding:15px; border-radius:4px;">
 				<div class="actions-holder-rows">
@@ -217,7 +228,6 @@ class Hub_Admin {
 										<th>متن پیام خروجی</th>
 										<td><textarea name="<?php echo $act_prefix; ?>[message]" rows="3" style="width:100%;"><?php echo esc_textarea($act['message']); ?></textarea></td>
 									</tr>
-									<!-- SECTION 5: DELAY LOGIC UI MODULE -->
 									<tr>
 										<th>⏱ تاخیر در اجرا</th>
 										<td>

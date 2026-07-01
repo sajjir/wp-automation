@@ -67,15 +67,15 @@ function hub_init_plugin() {
     load_plugin_textdomain( 'automation-hub', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
     // ب) شروع به کار ماژول‌ها
-    if ( class_exists( 'Hub_Bridge' ) ) Hub_Bridge::init(); // گوش دادن به رویدادها
+    if ( class_exists( 'Hub_Bridge' ) ) Hub_Bridge::init(); 
     
-    // ج) راه‌اندازی کلاس ادمین
+    // ج) اصلاح خطای بحرانی لود ادمین
     if ( class_exists( 'Hub_Admin' ) ) {
         $hub_admin = new Hub_Admin();
         $hub_admin->init();
     }
     
-    // د) سیستم لاگین (حیاتی برای شورت‌کد)
+    // د) سیستم لاگین
     if ( class_exists( 'Hub_Auth' ) ) Hub_Auth::init();     
     
     // هـ) ویجت داشبورد
@@ -83,6 +83,6 @@ function hub_init_plugin() {
         new Hub_Widget();
     }
     
-    // نکته: خطای مربوط به Hub_Sender::init(); از اینجا حذف شد تا مشکل کاملاً برطرف شود.
+    // نکته: متد ناموجود Hub_Sender::init کاملاً از اینجا حذف شد.
 }
-add_action( 'init', 'hub_init_plugin', 20 ); // اولویت ۲۰ حیاتی است
+add_action( 'init', 'hub_init_plugin', 20 );
