@@ -1,199 +1,217 @@
 <?php
+/**
+ * Dispatcher core sending module layer
+ *
+ * @package    Automation_Hub
+ * @subpackage Automation_Hub/core
+ */
 
 class Hub_Sender {
 
-	public static function init() {
-		// هوک اصلی: گوش دادن به دستوری که Hub_Queue صادر می‌کند
-		add_action( 'hub_process_queue_item', array( __CLASS__, 'process_queue_item' ), 10, 1 );
+	/**
+	 * Central Action Router Switching Framework
+	 */
+	public static function dispatch( $type, $args ) {
+		switch ( $type ) {
+			case 'sms':
+				self::send_sms( $args );
+				break;
+			case 'telegram':
+				self::send_telegram( $args );
+				break;
+			case 'n8n':
+			case 'google_sheet':
+				self::send_webhook_payload( $args );
+				break;
+			case 'email':
+				self::send_html_email( $args );
+				break;
+			case 'whatsapp':
+				self::send_whatsapp_cloud( $args );
+				break;
+			case 'slack':
+			case 'discord':
+				self::send_chat_webhook( $args, $type );
+				break;
+			case 'onesignal':
+				self::send_onesignal_push( $args );
+				break;
+			case 'order_note':
+				self::internal_add_order_note( $args );
+				break;
+			case 'order_status':
+				self::internal_change_order_status( $args );
+				break;
+			case 'apply_coupon':
+				self::internal_generate_coupon( $args );
+				break;
+		}
 	}
 
-    /**
-     * WORKER: این متد توسط Action Scheduler اجرا می‌شود.
-     * شناسه صف را می‌گیرد، اطلاعات را از دیتابیس می‌خواند و ارسال می‌کند.
-     */
-    public static function process_queue_item( $args ) {
-        global $wpdb;
-        $table = $wpdb->prefix . 'hub_queue';
+	private static function send_sms( $args ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		$conn_id = $args['connection_id'];
+		if ( ! isset( $webhooks[$conn_id] ) ) return;
 
-        // اصلاح آرگومان: گاهی آرایه می‌آید، گاهی عدد مستقیم
-        $queue_id = ( is_array($args) && isset($args['id']) ) ? $args['id'] : $args;
+		$provider = $webhooks[$conn_id];
+		$target_num = $args['target_value'];
+		
+		if ( 'customer' === $args['target_mode'] && $args['entity'] instanceof WC_Order ) {
+			$target_num = $args['entity']->get_billing_phone();
+		}
 
-        if ( empty($queue_id) ) return;
+		if ( empty( $target_num ) ) return;
 
-        // 1. دریافت آیتم از دیتابیس
-        $item = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $queue_id ) );
-
-        // اگر قبلاً تکمیل شده یا وجود ندارد، خارج شو
-        if ( ! $item || $item->status === 'completed' ) {
-            return;
-        }
-
-        // 2. تغییر وضعیت به در حال پردازش (processing)
-        Hub_Queue::update_status( $queue_id, 'processing' );
-
-        $payload = json_decode( $item->payload, true );
-        $type = $item->event_type;
-
-        // 3. تلاش برای ارسال
-        // نکته: ما متد send_immediate را صدا می‌زنیم که همان منطق dispatch را دارد
-        $result = self::dispatch( $type, $payload );
-
-        // 4. آپدیت وضعیت نهایی بر اساس نتیجه ارسال
-        if ( $result === true ) {
-            Hub_Queue::update_status( $queue_id, 'completed' );
-        } else {
-            Hub_Queue::update_status( $queue_id, 'failed' );
-        }
-    }
-
-    /**
-     * ارسال آنی (مخصوص دکمه‌های تست دستی)
-     */
-    public static function send_immediate( $type, $args ) {
-        return self::dispatch( $type, $args );
-    }
-
-    /**
-     * توزیع‌کننده مرکزی (Dispatcher)
-     * خروجی: true (موفق) یا false (ناموفق)
-     */
-    private static function dispatch( $type, $args ) {
-        switch ( $type ) {
-            case 'n8n.send':
-                return self::send_to_n8n( $args );
-            case 'sms.send':
-                return self::send_sms( $args );
-            case 'telegram.send':
-                return self::send_telegram( $args );
-            default:
-                return false; 
-        }
-    }
-
-	private static function send_to_n8n( $data ) {
-		$url = $data['_webhook_url'] ?? '';
-		if ( empty( $url ) ) return false;
-
-		unset( $data['_webhook_url'] );
-
-        // مدیریت فلگ تست (برای تمیز بودن لاگ‌ها)
-        $is_test = !empty($data['is_test_run']);
-        if(isset($data['is_test_run'])) unset($data['is_test_run']);
-
-		$args = array(
-			'body'        => json_encode( $data ),
-			'headers'     => array( 'Content-Type' => 'application/json' ),
-			'timeout'     => 20,
-			'blocking'    => true,
-            'sslverify'   => false,
-		);
-
-		$res = wp_remote_post( $url, $args );
-        
-        if ( is_wp_error( $res ) ) {
-            Hub_Logger::log( 'خطا در ارسال n8n: ' . $res->get_error_message(), 'error', 'n8n' );
-            return false;
-        } 
-        
-        $code = wp_remote_retrieve_response_code($res);
-        if ( $code >= 200 && $code < 300 ) {
-            // لاگ موفقیت (فقط در حالت تست یا دیباگ)
-            if($is_test) Hub_Logger::log( 'تست موفق n8n', 'info', 'n8n' );
-            return true;
-        } else {
-            Hub_Logger::log( "خطای سرور مقصد ($code): " . wp_remote_retrieve_body($res), 'error', 'n8n' );
-            return false;
-        }
+		// Call outward API via standard remote post execution patterns...
+		wp_remote_post( 'https://api.melipayamak.com/json/Simple.ashx', array(
+			'body' => array(
+				'username' => $provider['username'],
+				'password' => $provider['password'],
+				'to'       => $target_num,
+				'from'     => $provider['from_number'],
+				'text'     => $args['message']
+			)
+		));
 	}
 
-	private static function send_sms( $data ) {
-        $user = $data['user'] ?? '';
-        $pass = $data['pass'] ?? '';
-        $to   = $data['mobile'] ?? '';
-        $text = $data['message'] ?? '';
-        
-        if(empty($user) || empty($pass) || empty($to)) return false;
+	private static function send_telegram( $args ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		$conn_id = $args['connection_id'];
+		if ( ! isset( $webhooks[$conn_id] ) ) return;
 
-        $api_url = "https://rest.payamak-panel.com/api/SendSMS/SendSMS";
-        $payload = array(
-            'username' => $user,
-            'password' => $pass,
-            'to' => $to,
-            'from' => $data['from'] ?? '',
-            'text' => $text,
-            'isflash' => false
-        );
+		$bot = $webhooks[$conn_id];
+		$chat_id = ! empty( $args['target_value'] ) ? $args['target_value'] : $bot['chat_id'];
 
-        // لاجیک پترن (SharedLine)
-        if ( strpos( $text, '@' ) === 0 ) {
-            $parts = explode( '@', substr( $text, 1 ) );
-            if ( count( $parts ) >= 2 ) {
-                $api_url = "https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber";
-                $payload = array(
-                    'username' => $user,
-                    'password' => $pass,
-                    'text' => implode(';', explode(';', $parts[1])),
-                    'to' => $to,
-                    'bodyId' => intval($parts[0])
-                );
-            }
-        }
+		if ( empty( $chat_id ) ) return;
 
-        $res = wp_remote_post( $api_url, array(
-            'body'    => $payload,
-            'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
-            'timeout' => 15
-        ));
-        
-        if ( is_wp_error( $res ) ) {
-            Hub_Logger::log( 'خطای اتصال پیامک: ' . $res->get_error_message(), 'error', 'sms' );
-            return false;
-        } else {
-            $json = json_decode(wp_remote_retrieve_body($res), true);
-            // بررسی موفقیت: Value معمولاً کد رهگیری است (اگر طولانی باشد یعنی موفق)
-            if( (isset($json['Value']) && strlen($json['Value']) > 5) || (isset($json['RetStatus']) && $json['RetStatus'] == 1) ) {
-                 return true;
-            } else {
-                 Hub_Logger::log( 'خطای پنل پیامک: ' . ($json['StrRetStatus'] ?? 'Unknown'), 'error', 'sms' );
-                 return false;
-            }
-        }
+		wp_remote_post( "https://api.telegram.org/bot" . $bot['token'] . "/sendMessage", array(
+			'body' => array(
+				'chat_id' => $chat_id,
+				'text'    => $args['message']
+			)
+		));
 	}
 
-    private static function send_telegram( $data ) {
-        $token = $data['token'] ?? '';
-        $chat_id = $data['chat_id'] ?? '';
-        
-        if(empty($token) || empty($chat_id)) return false;
+	private static function send_webhook_payload( $args ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		$conn_id = $args['connection_id'];
+		if ( ! isset( $webhooks[$conn_id] ) ) return;
 
-        $proxy = get_option('hub_telegram_proxy'); 
-        $url = "https://api.telegram.org/bot$token/sendMessage";
-        
-        $args = [
-            'body' => json_encode([
-                'chat_id' => $chat_id,
-                'text' => $data['message'],
-                'parse_mode' => 'HTML'
-            ]),
-            'headers' => ['Content-Type' => 'application/json'],
-            'timeout' => 15
-        ];
+		$url = $webhooks[$conn_id]['url'];
+		
+		wp_remote_post( $url, array(
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => json_encode( array(
+				'message'     => $args['message'],
+				'entity_type' => $args['entity_type'],
+				'timestamp'   => current_time( 'timestamp' )
+			) )
+		));
+	}
 
-        if(!empty($proxy)) $args['proxy'] = $proxy; 
+	private static function send_html_email( $args ) {
+		$to = $args['target_value'];
+		if ( 'customer' === $args['target_mode'] && $args['entity'] instanceof WC_Order ) {
+			$to = $args['entity']->get_billing_email();
+		}
 
-        $res = wp_remote_post($url, $args);
-        
-        if ( is_wp_error( $res ) ) {
-            Hub_Logger::log( 'خطای اتصال تلگرام: ' . $res->get_error_message(), 'error', 'telegram' );
-            return false;
-        }
-        
-        $body = json_decode(wp_remote_retrieve_body($res), true);
-        if ( isset($body['ok']) && $body['ok'] == true ) {
-            return true;
-        } else {
-            Hub_Logger::log( 'خطای API تلگرام: ' . ($body['description'] ?? 'Unknown'), 'error', 'telegram' );
-            return false;
-        }
-    }
+		if ( empty( $to ) ) return;
+
+		$subject = isset( $args['meta']['subject'] ) ? $args['meta']['subject'] : 'اطلاع‌رسانی اتوماسیون هاب';
+		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+		wp_mail( $to, $subject, wpautop( $args['message'] ), $headers );
+	}
+
+	private static function send_whatsapp_cloud( $args ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		if ( ! isset( $webhooks[$args['connection_id']] ) ) return;
+		$config = $webhooks[$args['connection_id']];
+
+		$to = $args['target_value'];
+		if ( 'customer' === $args['target_mode'] && $args['entity'] instanceof WC_Order ) {
+			$to = $args['entity']->get_billing_phone();
+		}
+
+		if ( empty( $to ) ) return;
+
+		wp_remote_post( "https://graph.facebook.com/v19.0/" . $config['phone_number_id'] . "/messages", array(
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $config['access_token'],
+				'Content-Type'  => 'application/json'
+			),
+			'body' => json_encode( array(
+				'messaging_product' => 'whatsapp',
+				'to'                => $to,
+				'type'              => 'text',
+				'text'              => array( 'body' => $args['message'] )
+			))
+		));
+	}
+
+	private static function send_chat_webhook( $args, $platform ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		if ( ! isset( $webhooks[$args['connection_id']] ) ) return;
+		$url = $webhooks[$args['connection_id']]['url'];
+
+		$key = ( 'slack' === $platform ) ? 'text' : 'content';
+
+		wp_remote_post( $url, array(
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => json_encode( array( $key => $args['message'] ) )
+		));
+	}
+
+	private static function send_onesignal_push( $args ) {
+		$webhooks = get_option( 'hub_webhooks', array() );
+		if ( ! isset( $webhooks[$args['connection_id']] ) ) return;
+		$config = $webhooks[$args['connection_id']];
+
+		wp_remote_post( 'https://onesignal.com/api/v1/notifications', array(
+			'headers' => array(
+				'Authorization' => 'Basic ' . $config['rest_api_key'],
+				'Content-Type'  => 'application/json'
+			),
+			'body' => json_encode( array(
+				'app_id'   => $config['app_id'],
+				'contents' => array( 'en' => $args['message'] ),
+				'included_segments' => array( 'Subscribed Users' )
+			))
+		));
+	}
+
+	private static function internal_add_order_note( $args ) {
+		if ( 'order' === $args['entity_type'] && $args['entity'] instanceof WC_Order ) {
+			$args['entity']->add_order_note( $args['message'] );
+		}
+	}
+
+	private static function internal_change_order_status( $args ) {
+		if ( 'order' === $args['entity_type'] && $args['entity'] instanceof WC_Order ) {
+			$target_status = isset( $args['meta']['target_status'] ) ? $args['meta']['target_status'] : '';
+			if ( ! empty( $target_status ) ) {
+				$args['entity']->update_status( $target_status, 'تغییر وضعیت خودکار توسط اتوماسیون هاب.' );
+			}
+		}
+	}
+
+	private static function internal_generate_coupon( $args ) {
+		if ( ! class_exists( 'WC_Coupon' ) ) return;
+		
+		$amount = isset( $args['meta']['coupon_amount'] ) ? floatval( $args['meta']['coupon_amount'] ) : 10;
+		$expiry = isset( $args['meta']['coupon_expiry_days'] ) ? intval( $args['meta']['coupon_expiry_days'] ) : 7;
+		
+		$coupon_code = 'HUB-' . strtoupper( wp_generate_password( 6, false ) );
+		$coupon = new WC_Coupon();
+		$coupon->set_code( $coupon_code );
+		$coupon->set_discount_type( 'percent' );
+		$coupon->set_amount( $amount );
+		$coupon->set_date_expires( time() + ( $expiry * 81640 ) );
+		$coupon->set_individual_use( true );
+		$coupon->save();
+
+		if ( 'order' === $args['entity_type'] && $args['entity'] instanceof WC_Order ) {
+			$args['entity']->add_order_note( sprintf( 'کد تخفیف اختصاصی %s ساخته و فعال شد.', $coupon_code ) );
+		}
+	}
 }
