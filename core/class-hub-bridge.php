@@ -8,25 +8,27 @@
 
 class Hub_Bridge {
 
-	public function init() {
-		// Existing triggers hooks can hook here...
-		add_action( 'woocommerce_order_status_changed', array( $this, 'trigger_order_status' ), 10, 4 );
+	public static function init() {
+		$instance = new self();
+		
+		// Triggers hooks
+		add_action( 'woocommerce_order_status_changed', array( $instance, 'trigger_order_status' ), 10, 4 );
 		
 		// Phase 2 Triggers
-		add_action( 'woocommerce_add_to_cart', array( $this, 'track_cart_addition' ), 10, 6 );
-		add_action( 'woocommerce_low_stock', array( $this, 'trigger_low_stock' ) );
-		add_action( 'woocommerce_no_stock', array( $this, 'trigger_no_stock' ) );
-		add_action( 'woocommerce_order_refunded', array( $this, 'trigger_order_refunded' ), 10, 2 );
-		add_action( 'transition_comment_status', array( $this, 'trigger_product_review' ), 10, 3 );
-		add_action( 'wp_login', array( $this, 'update_user_last_login' ), 10, 2 );
+		add_action( 'woocommerce_add_to_cart', array( $instance, 'track_cart_addition' ), 10, 6 );
+		add_action( 'woocommerce_low_stock', array( $instance, 'trigger_low_stock' ) );
+		add_action( 'woocommerce_no_stock', array( $instance, 'trigger_no_stock' ) );
+		add_action( 'woocommerce_order_refunded', array( $instance, 'trigger_order_refunded' ), 10, 2 );
+		add_action( 'transition_comment_status', array( $instance, 'trigger_product_review' ), 10, 3 );
+		add_action( 'wp_login', array( $instance, 'update_user_last_login' ), 10, 2 );
 		
 		// Cron Actions
-		add_action( 'hub_cron_fifteen_minute_event', array( $this, 'check_abandoned_carts' ) );
-		add_action( 'hub_cron_daily_event', array( $this, 'check_winback_users' ) );
-		add_action( 'hub_custom_scheduled_rule_trigger', array( $this, 'execute_scheduled_rule' ), 10, 1 );
+		add_action( 'hub_cron_fifteen_minute_event', array( $instance, 'check_abandoned_carts' ) );
+		add_action( 'hub_cron_daily_event', array( $instance, 'check_winback_users' ) );
+		add_action( 'hub_custom_scheduled_rule_trigger', array( $instance, 'execute_scheduled_rule' ), 10, 1 );
 
 		// Delayed action execution handler from Action Scheduler
-		add_action( 'hub_process_delayed_action', array( $this, 'execute_delayed_action' ), 10, 4 );
+		add_action( 'hub_process_delayed_action', array( $instance, 'execute_delayed_action' ), 10, 4 );
 
 		// Register crons if not exists
 		if ( ! wp_next_scheduled( 'hub_cron_fifteen_minute_event' ) ) {
@@ -66,7 +68,7 @@ class Hub_Bridge {
 
 	public function track_cart_addition( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
 		if ( ! function_exists( 'WC' ) ) return;
-		global wpdb;
+		global $wpdb;
 		
 		$current_user_id = get_current_user_id();
 		$cart = WC()->cart->get_cart();
@@ -88,7 +90,7 @@ class Hub_Bridge {
 	}
 
 	public function check_abandoned_carts() {
-		global wpdb;
+		global $wpdb;
 		$table_name = $wpdb->prefix . 'hub_abandoned_carts';
 		$delay_time = date( 'Y-m-d H:i:s', strtotime( '-30 minutes' ) );
 
@@ -144,11 +146,6 @@ class Hub_Bridge {
 		$rules = get_option( 'hub_rules', array() );
 		if ( empty( $rules ) ) return;
 
-		// Ensure old data schema loaded runtime on frontend falls back nicely
-		if ( function_exists( 'Hub_Activator::migrate_rules_to_v2' ) ) {
-			// Fail-safe execution
-		}
-
 		foreach ( $rules as $rule_id => $rule ) {
 			if ( null !== $forced_rule_id && $rule_id !== $forced_rule_id ) {
 				continue;
@@ -183,7 +180,7 @@ class Hub_Bridge {
 					elseif ( 'product' === $entity_type && is_object( $entity ) ) $entity_id = $entity->get_id();
 					elseif ( 'user' === $entity_type && is_object( $entity ) ) $entity_id = $entity->ID;
 					elseif ( 'review' === $entity_type && is_object( $entity ) ) $entity_id = $entity->comment_ID;
-					elseif ( 'cart' === $entity_type && is_object( $row ) ) $entity_id = $entity->id;
+					elseif ( 'cart' === $entity_type && is_object( $entity ) ) $entity_id = $entity->id;
 
 					if ( function_exists( 'as_schedule_single_action' ) ) {
 						as_schedule_single_action(
@@ -228,7 +225,7 @@ class Hub_Bridge {
 		elseif ( 'user' === $entity_type ) $entity = get_user_by( 'id', $entity_id );
 		elseif ( 'review' === $entity_type ) $entity = get_comment( $entity_id );
 		elseif ( 'cart' === $entity_type ) {
-			global wpdb;
+			global $wpdb;
 			$entity = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}hub_abandoned_carts WHERE id = %d", $entity_id ) );
 		}
 
