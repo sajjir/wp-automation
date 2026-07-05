@@ -73,7 +73,7 @@ class Hub_Sender {
 		));
 	}
 
-	private static function send_telegram( $args ) {
+		private static function send_telegram( $args ) {
 		$webhooks = get_option( 'hub_webhooks', array() );
 		$conn_id = $args['connection_id'];
 		if ( ! isset( $webhooks[$conn_id] ) ) return;
@@ -94,22 +94,52 @@ class Hub_Sender {
 	private static function send_webhook_payload( $args ) {
 		$webhooks = get_option( 'hub_webhooks', array() );
 		$conn_id = $args['connection_id'];
-		if ( ! isset( $webhooks[$conn_id] ) ) return;
+		
+        // اگر کانال یافت نشد، فرآیند متوقف شود
+		if ( empty($conn_id) || ! isset( $webhooks[$conn_id] ) ) {
+            return array('success' => false, 'msg' => 'ارسال ناموفق: کانال ارتباطی انتخاب نشده یا در دیتابیس یافت نشد.');
+        }
 
 		$url = $webhooks[$conn_id]['url'];
 		
-		wp_remote_post( $url, array(
+        // ایجاد پکیج حرفه‌ای و قدرتمند برای ارسال به n8n
+        $payload = array(
+            'message'     => $args['message'],
+            'target'      => $args['target_value'],
+            'entity_type' => $args['entity_type'],
+            'timestamp'   => current_time( 'mysql' )
+        );
+
+        // اگر اکشن روی یک سفارش اتفاق می‌افتد، دیتاهای باارزش را ضمیمه کن
+        if ( 'order' === $args['entity_type'] && $args['entity'] instanceof WC_Order ) {
+            $order = $args['entity'];
+            $payload['order_data'] = array(
+                'id'            => $order->get_id(),
+                'total'         => $order->get_total(),
+                'status'        => $order->get_status(),
+                'currency'      => $order->get_currency(),
+                'first_name'    => $order->get_billing_first_name(),
+                'last_name'     => $order->get_billing_last_name(),
+                'phone'         => $order->get_billing_phone(),
+                'payment_method'=> $order->get_payment_method_title(),
+            );
+        }
+
+		$response = wp_remote_post( $url, array(
 			'headers' => array( 'Content-Type' => 'application/json' ),
-			'body'    => json_encode( array(
-				'message'     => $args['message'],
-				'entity_type' => $args['entity_type'],
-				'timestamp'   => current_time( 'timestamp' )
-			) )
+			'body'    => json_encode( $payload ),
+            'timeout' => 15
 		));
+
+        if ( is_wp_error( $response ) ) {
+            return array('success' => false, 'msg' => 'خطای سرور: ' . $response->get_error_message());
+        }
+
+        return array('success' => true, 'msg' => 'ارسال با موفقیت انجام شد (کد پاسخ سرور: ' . wp_remote_retrieve_response_code($response) . ')');
 	}
 
 	private static function send_html_email( $args ) {
-		$to = $args['target_value'];
+	$to = $args['target_value'];
 		if ( 'customer' === $args['target_mode'] && $args['entity'] instanceof WC_Order ) {
 			$to = $args['entity']->get_billing_email();
 		}

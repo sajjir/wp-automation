@@ -12,6 +12,10 @@ class Hub_Admin {
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'save_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+
+        // AJAX Hooks for Instant Testing
+        add_action( 'wp_ajax_hub_search_orders', array( $this, 'ajax_search_orders' ) );
+        add_action( 'wp_ajax_hub_test_action', array( $this, 'ajax_test_action' ) );
 	}
 
 	public function enqueue_admin_assets( $hook ) {
@@ -19,9 +23,14 @@ class Hub_Admin {
 			return;
 		}
 		
-		// مسیر دقیق لود فایل‌ها بر اساس ساختار پوشه‌های شما
 		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/js/css/hub-admin.css', array(), HUB_VERSION );
 		wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
+
+        // ارسال آدرس AJAX به جاوااسکریپت
+        wp_localize_script( 'hub-admin-js', 'hubAdmin', array(
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce'    => wp_create_nonce( 'hub_admin_ajax' )
+        ));
 	}
 
 	public function add_plugin_admin_menu() {
@@ -52,7 +61,6 @@ class Hub_Admin {
 				<a href="?page=automation-hub&tab=connections" class="nav-tab <?php echo $active_tab == 'connections' ? 'nav-tab-active' : ''; ?>">🔌 اتصالات و کانال‌ها (Providers)</a>
 			</h2>
 
-			<!-- فرم یکپارچه با مدیریت ذخیره‌سازی هوشمند -->
 			<form method="POST" action="" class="hub-form-container">
 				<?php
 				wp_nonce_field( 'hub_save_nonce', 'hub_nonce' );
@@ -64,14 +72,25 @@ class Hub_Admin {
 				?>
 			</form>
 		</div>
+
+        <!-- پاپ‌آپ تست اقدام آنی (Modal) -->
+        <div id="hub-test-modal" class="hub-modal-overlay">
+            <div class="hub-modal-box">
+                <div class="hub-modal-header">
+                    <h3>⚡ انتخاب سفارش برای تست آنی</h3>
+                    <button type="button" class="hub-modal-close"><span class="dashicons dashicons-no-alt"></span></button>
+                </div>
+                <div class="hub-modal-body">
+                    <input type="text" id="hub-order-search" class="hub-search-box" placeholder="جستجوی شماره سفارش یا موبایل مشتری..." />
+                    <div id="hub-order-results">
+                        <!-- نتایج جستجو اینجا با AJAX لود می‌شود -->
+                    </div>
+                </div>
+            </div>
+        </div>
 		<?php
 	}
 
-	/**
-	 * ==========================================
-	 * تب اول: سناریوهای اتوماسیون (Rules)
-	 * ==========================================
-	 */
 	private function render_campaigns_tab() {
 		$rules = get_option( 'hub_rules', array() );
 		$webhooks = get_option( 'hub_webhooks', array() );
@@ -98,7 +117,6 @@ class Hub_Admin {
 			</div>
 		</div>
 
-		<!-- قالب مخفی برای جاوااسکریپت -->
 		<script type="text/template" id="rule-template">
 			<?php $this->render_rule_row( array(), '{{RULE_INDEX}}', $webhooks, true ); ?>
 		</script>
@@ -127,95 +145,8 @@ class Hub_Admin {
 			</div>
 			
 			<div class="hub-card-body">
-				<!-- بخش رویداد (Trigger) -->
-				<div class="hub-section">
-					<div class="hub-section-header">
-						<span class="hub-step-number">۱</span>
-						<h4 class="hub-section-title">رویداد شروع (Trigger)</h4>
-					</div>
-					<div class="hub-grid-2">
-						<div class="hub-form-group">
-							<label>نوع رویداد</label>
-							<select name="<?php echo $input_prefix; ?>[trigger]" class="hub-select trigger-selector">
-								<option value="order_status" <?php selected($trigger, 'order_status'); ?>>تغییر وضعیت سفارش (ووکامرس)</option>
-								<option value="abandoned_cart" <?php selected($trigger, 'abandoned_cart'); ?>>سبد خرید رها شده (ووکامرس)</option>
-								<option value="low_stock" <?php selected($trigger, 'low_stock'); ?>>موجودی انبار رو به اتمام (ووکامرس)</option>
-								<option value="order_refunded" <?php selected($trigger, 'order_refunded'); ?>>ثبت مرجوعی سفارش (ووکامرس)</option>
-								<option value="product_review" <?php selected($trigger, 'product_review'); ?>>ثبت دیدگاه محصول (ووکامرس)</option>
-								<option value="winback_user" <?php selected($trigger, 'winback_user'); ?>>کاربر غیرفعال / Win-back (کاربران)</option>
-							</select>
-						</div>
-						<div class="hub-form-group">
-							<label>جزئیات رویداد</label>
-							<div class="cond-box cond-order_status <?php echo $trigger == 'order_status' ? '' : 'hidden-box'; ?>">
-								<select name="<?php echo $input_prefix; ?>[sub_trigger_order]" class="hub-select">
-									<option value="pending" <?php selected($sub_trigger, 'pending'); ?>>در انتظار پرداخت</option>
-									<option value="processing" <?php selected($sub_trigger, 'processing'); ?>>در حال پردازش</option>
-									<option value="completed" <?php selected($sub_trigger, 'completed'); ?>>تکمیل شده</option>
-									<option value="cancelled" <?php selected($sub_trigger, 'cancelled'); ?>>لغو شده</option>
-									<option value="refunded" <?php selected($sub_trigger, 'refunded'); ?>>مرجوع شده</option>
-								</select>
-							</div>
-							<div class="cond-box cond-winback_user <?php echo $trigger == 'winback_user' ? '' : 'hidden-box'; ?>">
-								<div class="hub-input-addon">
-									<span class="addon-text">پس از</span>
-									<input type="number" name="<?php echo $input_prefix; ?>[sub_trigger_winback]" value="<?php echo esc_attr($sub_trigger); ?>" class="hub-input" style="width:80px; text-align:center;" />
-									<span class="addon-text">روز عدم ورود</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- بخش شروط (Conditions) -->
-				<div class="hub-section hub-bg-light">
-					<div class="hub-section-header">
-						<span class="hub-step-number">۲</span>
-						<h4 class="hub-section-title">شروط هوشمند (Conditions)</h4>
-					</div>
-					<div class="hub-form-group">
-						<label class="hub-inline-label">
-							اجرای اقدامات در صورتی که: 
-							<select name="<?php echo $input_prefix; ?>[condition_logic]" class="hub-select" style="width: auto; display: inline-block;">
-								<option value="AND" <?php selected($condition_logic, 'AND'); ?>>همه شروط زیر برقرار باشند (AND)</option>
-								<option value="OR" <?php selected($condition_logic, 'OR'); ?>>حداقل یکی از شروط زیر برقرار باشد (OR)</option>
-							</select>
-						</label>
-					</div>
-					
-					<div class="conditions-container-rows">
-						<?php 
-						if(is_array($conditions) && !empty($conditions)){
-							foreach($conditions as $c_idx => $cond){
-								$c_field    = isset($cond['field']) ? $cond['field'] : '';
-								$c_operator = isset($cond['operator']) ? $cond['operator'] : '';
-								$c_val      = isset($cond['value']) ? $cond['value'] : '';
-								?>
-								<div class="hub-condition-row">
-									<select name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][field]" class="hub-select">
-										<option value="order_total" <?php selected($c_field, 'order_total'); ?>>جمع کل سفارش</option>
-										<option value="billing_city" <?php selected($c_field, 'billing_city'); ?>>شهر صورتحساب</option>
-										<option value="user_role" <?php selected($c_field, 'user_role'); ?>>نقش کاربری</option>
-									</select>
-									<select name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][operator]" class="hub-select">
-										<option value="equals" <?php selected($c_operator, 'equals'); ?>>برابر با</option>
-										<option value="not_equals" <?php selected($c_operator, 'not_equals'); ?>>مخالف با</option>
-										<option value="greater_than" <?php selected($c_operator, 'greater_than'); ?>>بزرگتر از</option>
-										<option value="contains" <?php selected($c_operator, 'contains'); ?>>شامل عبارت</option>
-									</select>
-									<input type="text" name="<?php echo $input_prefix; ?>[conditions][<?php echo $c_idx; ?>][value]" value="<?php echo esc_attr($c_val); ?>" class="hub-input" placeholder="مقدار ارزیابی..." />
-									<button type="button" class="hub-btn-icon-danger btn-remove-condition"><span class="dashicons dashicons-no"></span></button>
-								</div>
-								<?php
-							}
-						}
-						?>
-					</div>
-					<button type="button" class="hub-btn hub-btn-outline btn-add-condition" style="margin-top: 15px;"><span class="dashicons dashicons-plus"></span> افزودن شرط</button>
-				</div>
-
-				<!-- بخش اقدامات (Actions) -->
-				<div class="hub-section">
+				<!-- Trigger Section -->
+								<div class="hub-section">
 					<div class="hub-section-header">
 						<span class="hub-step-number">۳</span>
 						<h4 class="hub-section-title">اقدامات اجرایی (Actions)</h4>
@@ -226,8 +157,11 @@ class Hub_Admin {
 							foreach($actions as $a_idx => $act){
 								$act_id      = isset($act['id']) ? $act['id'] : uniqid();
 								$act_prefix  = $input_prefix . "[actions][$a_idx]";
+                                $act_name    = isset($act['name']) && !empty($act['name']) ? $act['name'] : 'اقدام خروجی';
 								$act_type    = isset($act['type']) ? $act['type'] : 'sms';
 								$conn_id_val = isset($act['connection_id']) ? $act['connection_id'] : '';
+                                $t_mode      = isset($act['target_mode']) ? $act['target_mode'] : 'customer';
+                                $t_value     = isset($act['target_value']) ? $act['target_value'] : '';
 								$act_msg     = isset($act['message']) ? $act['message'] : '';
 								$d_enabled   = !empty($act['delay']['enabled']);
 								$d_val       = isset($act['delay']['value']) ? $act['delay']['value'] : 0;
@@ -235,8 +169,14 @@ class Hub_Admin {
 								?>
 								<div class="hub-action-card">
 									<div class="hub-action-header">
-										<div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> اقدام #<?php echo esc_html($act_id); ?></div>
-										<button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-trash"></span></button>
+										<div class="hub-action-title">
+                                            <span class="dashicons dashicons-megaphone"></span> 
+                                            <input type="text" name="<?php echo $act_prefix; ?>[name]" value="<?php echo esc_attr($act_name); ?>" class="hub-action-title-input" placeholder="عنوان اقدام (مثلا: ارسال به n8n)" />
+                                        </div>
+                                        <div class="hub-action-controls">
+                                            <button type="button" class="hub-btn hub-btn-success btn-test-action" title="تست این اکشن روی یک سفارش واقعی">⚡ اقدام آنی</button>
+										    <button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف این اقدام"><span class="dashicons dashicons-trash"></span></button>
+                                        </div>
 									</div>
 									<input type="hidden" name="<?php echo $act_prefix; ?>[id]" value="<?php echo esc_attr($act_id); ?>" />
 									
@@ -252,16 +192,31 @@ class Hub_Admin {
 												<option value="order_status" <?php selected($act_type, 'order_status'); ?>>داخلی - تغییر وضعیت سفارش</option>
 											</select>
 										</div>
-										<div class="hub-form-group">
+										<div class="hub-form-group connection-group">
 											<label>انتخاب کانال ارتباطی</label>
-											<select name="<?php echo $act_prefix; ?>[connection_id]" class="hub-select">
-												<option value="">-- کانال پیشفرض --</option>
+											<select name="<?php echo $act_prefix; ?>[connection_id]" class="hub-select connection-selector">
+												<option value="">-- انتخاب کانال --</option>
 												<?php foreach($webhooks as $w_key => $w_val): ?>
-													<option value="<?php echo esc_attr($w_key); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html(isset($w_val['name']) ? $w_val['name'] : $w_key); ?></option>
+													<option value="<?php echo esc_attr($w_key); ?>" data-provider="<?php echo esc_attr($w_val['type']); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html(isset($w_val['name']) ? $w_val['name'] : $w_key); ?></option>
 												<?php endforeach; ?>
 											</select>
 										</div>
 									</div>
+
+                                    <div class="hub-grid-2 target-group">
+                                        <div class="hub-form-group">
+                                            <label>گیرنده پیام (Target)</label>
+                                            <select name="<?php echo $act_prefix; ?>[target_mode]" class="hub-select target-mode-selector">
+                                                <option value="customer" <?php selected($t_mode, 'customer'); ?>>مشتری (صاحب سفارش)</option>
+                                                <option value="admin" <?php selected($t_mode, 'admin'); ?>>مدیر سایت</option>
+                                                <option value="custom" <?php selected($t_mode, 'custom'); ?>>شماره / آدرس دلخواه</option>
+                                            </select>
+                                        </div>
+                                        <div class="hub-form-group target-custom-box" style="<?php echo $t_mode === 'custom' ? '' : 'display:none;'; ?>">
+                                            <label>مقدار گیرنده (شماره موبایل یا URL)</label>
+                                            <input type="text" name="<?php echo $act_prefix; ?>[target_value]" value="<?php echo esc_attr($t_value); ?>" class="hub-input ltr-input" placeholder="0912..." />
+                                        </div>
+                                    </div>
 									
 									<div class="hub-form-group">
 										<label>محتوای پیام</label>
@@ -293,19 +248,14 @@ class Hub_Admin {
 						}
 						?>
 					</div>
-					<button type="button" class="hub-btn hub-btn-secondary btn-add-action-node" style="margin-top:15px;"><span class="dashicons dashicons-plus"></span> افزودن اقدام اجرایی</button>
+					<button type="button" class="hub-btn hub-btn-secondary btn-add-action-node" style="margin-top:15px;"><span class="dashicons dashicons-plus"></span> افزودن اقدام جدید</button>
 				</div>
-			</div>
 		</div>
 		<?php
 	}
 
-	/**
-	 * ==========================================
-	 * تب دوم: مدیریت کانال‌ها (Webhooks/Providers)
-	 * ==========================================
-	 */
 	private function render_connections_tab() {
+        // مشابه قبل بدون تغییر
 		$webhooks = get_option( 'hub_webhooks', array() );
 		?>
 		<div class="hub-tab-content">
@@ -332,7 +282,6 @@ class Hub_Admin {
 			</div>
 		</div>
 
-		<!-- قالب مخفی کانال‌ها -->
 		<script type="text/template" id="webhook-template">
 			<?php $this->render_webhook_row( array(), '{{WH_INDEX}}', true ); ?>
 		</script>
@@ -473,17 +422,12 @@ class Hub_Admin {
 		<?php
 	}
 
-	/**
-	 * ==========================================
-	 * پردازش و ذخیره‌سازی ایزوله و امن
-	 * ==========================================
-	 */
 	public function save_settings() {
+		// منطق ذخیره‌سازی مانند قبل است، فقط فیلدهای name و target اضافه شده‌اند
 		if ( ! current_user_can( 'manage_options' ) ) return;
 		if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) return;
 		if ( ! isset( $_POST['hub_nonce'] ) || ! wp_verify_nonce( $_POST['hub_nonce'], 'hub_save_nonce' ) ) return;
 
-		// 1. ذخیره تب سناریوها
 		if ( isset( $_POST['hub_save_rules'] ) ) {
 			$clean_rules = array();
 			if ( ! empty( $_POST['rules'] ) && is_array( $_POST['rules'] ) ) {
@@ -509,9 +453,10 @@ class Hub_Admin {
 						foreach ( $rule['actions'] as $act ) {
 							$clean_actions[] = array(
 								'id'            => isset($act['id']) ? sanitize_text_field( $act['id'] ) : uniqid(),
+                                'name'          => isset($act['name']) ? sanitize_text_field( $act['name'] ) : '',
 								'type'          => isset($act['type']) ? sanitize_text_field( $act['type'] ) : '',
 								'connection_id' => isset($act['connection_id']) ? sanitize_text_field( $act['connection_id'] ) : '',
-								'target_mode'   => isset($act['target_mode']) ? sanitize_text_field( $act['target_mode'] ) : 'custom',
+								'target_mode'   => isset($act['target_mode']) ? sanitize_text_field( $act['target_mode'] ) : 'customer',
 								'target_value'  => isset($act['target_value']) ? sanitize_text_field( $act['target_value'] ) : '',
 								'message'       => isset($act['message']) ? wp_kses_post( $act['message'] ) : '',
 								'delay'         => array(
@@ -538,7 +483,6 @@ class Hub_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون با موفقیت ذخیره شدند.</p></div>';
 		}
 
-		// 2. ذخیره تب کانال‌ها
 		if ( isset( $_POST['hub_save_webhooks'] ) ) {
 			$clean_webhooks = array();
 			if ( ! empty( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
@@ -565,4 +509,87 @@ class Hub_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>✅ تنظیمات کانال‌های ارتباطی با موفقیت ذخیره شد.</p></div>';
 		}
 	}
+
+    /**
+     * ==========================================
+     * متدهای AJAX برای پاپ‌آپ تست (اقدام آنی)
+     * ==========================================
+     */
+    public function ajax_search_orders() {
+        check_ajax_referer( 'hub_admin_ajax', 'nonce' );
+        if ( ! current_user_can('manage_options') || ! function_exists('wc_get_orders') ) {
+            wp_send_json_error( 'شما دسترسی ندارید یا ووکامرس فعال نیست.' );
+        }
+
+        $search = isset($_POST['term']) ? sanitize_text_field($_POST['term']) : '';
+        $args = array(
+            'limit' => 10,
+            'orderby' => 'date',
+            'order' => 'DESC',
+        );
+
+        // جستجو بر اساس آیدی، ایمیل یا نام
+        if ( ! empty($search) ) {
+            $args['search'] = $search;
+        }
+
+        $orders = wc_get_orders( $args );
+        $html = '';
+
+        if ( empty($orders) ) {
+            $html = '<p style="text-align:center;color:#64748b;margin:20px 0;">هیچ سفارشی یافت نشد.</p>';
+        } else {
+            $html .= '<ul class="hub-order-list">';
+            foreach ( $orders as $order ) {
+                $status_name = wc_get_order_status_name( $order->get_status() );
+                $html .= '<li class="hub-order-item">';
+                $html .= '<div class="hub-order-info">';
+                $html .= '<strong>سفارش #' . $order->get_id() . ' <span style="font-weight:normal;color:#64748b;font-size:12px;">(' . $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() . ')</span></strong>';
+                $html .= '<span>' . $order->get_billing_phone() . ' | ' . $status_name . ' | ' . wc_price($order->get_total()) . '</span>';
+                $html .= '</div>';
+                $html .= '<button type="button" class="hub-btn hub-btn-outline hub-btn-sm btn-execute-test" data-order-id="' . $order->get_id() . '">ارسال به این سفارش</button>';
+                $html .= '</li>';
+            }
+            $html .= '</ul>';
+        }
+
+        wp_send_json_success( $html );
+    }
+
+    public function ajax_test_action() {
+        check_ajax_referer( 'hub_admin_ajax', 'nonce' );
+        if ( ! current_user_can('manage_options') ) wp_send_json_error('دسترسی غیرمجاز.');
+
+        $order_id = intval($_POST['order_id']);
+        $action_data = isset($_POST['action_data']) ? $_POST['action_data'] : array();
+
+        if ( empty($order_id) || empty($action_data) || ! class_exists('Hub_Bridge') || ! class_exists('Hub_Sender') ) {
+            wp_send_json_error('اطلاعات ناقص است.');
+        }
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            wp_send_json_error('سفارش یافت نشد.');
+        }
+
+        // پردازش متغیرها با استفاده از متد بریج
+        $bridge = new Hub_Bridge();
+        $message = isset($action_data['message']) ? stripslashes($action_data['message']) : '';
+        $parsed_message = $bridge->parse_shortcodes( $message, $order, 'order' );
+
+        $dispatch_args = array(
+            'connection_id' => sanitize_text_field($action_data['connection_id']),
+            'target_mode'   => sanitize_text_field($action_data['target_mode']),
+            'target_value'  => sanitize_text_field($action_data['target_value']),
+            'message'       => $parsed_message,
+            'meta'          => array(),
+            'entity'        => $order,
+            'entity_type'   => 'order'
+        );
+
+        // ارسال از طریق کلاس مرکزی سِندِر
+        Hub_Sender::dispatch( sanitize_text_field($action_data['type']), $dispatch_args );
+
+        wp_send_json_success('اقدام با موفقیت روی سفارش #' . $order_id . ' شبیه‌سازی شد.');
+    }
 }
