@@ -3,6 +3,8 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 1. RULES LOGIC (سناریوها)
     // ==========================================
+    
+    // /* STREAMING_CHUNK:Adding new rule block visually... */
     $('#btn-add-new-rule').on('click', function(e) {
         e.preventDefault();
         var container = $('#rules-repeater-container');
@@ -34,6 +36,7 @@ jQuery(document).ready(function($) {
         scope.find('.cond-' + val).fadeIn(200);
     });
 
+    // /* STREAMING_CHUNK:Adding rule constraints fields... */
     $(document).on('click', '.btn-add-condition', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -58,6 +61,7 @@ jQuery(document).ready(function($) {
         $(this).closest('.hub-condition-row').fadeOut(200, function() { $(this).remove(); });
     });
 
+    // /* STREAMING_CHUNK:Injecting a new Action block inside a Rule... */
     $(document).on('click', '.btn-add-action-node', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -66,6 +70,7 @@ jQuery(document).ready(function($) {
         var actIdx = container.find('.hub-action-card').length;
         var uniqueActionId = 'act_' + Math.random().toString(36).substr(2, 9);
 
+        // واکشی آپشن‌های کانال‌ها (الان دیگه disabled نیستن و درست میان)
         var existingSelect = $('.action-type-selector').closest('.hub-grid-2').find('.connection-selector').first();
         var webhookOptions = existingSelect.length > 0 ? existingSelect.html() : '<option value="">-- کانال پیشفرض --</option>';
 
@@ -121,11 +126,20 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 2. منطق فیلتر کانال‌ها (رفع باگ ذخیره نشدن)
     // ==========================================
+    // /* STREAMING_CHUNK:Filtering available connection methods smartly... */
     function filterConnectionOptions($actionTypeSelect) {
         var card = $actionTypeSelect.closest('.hub-action-card');
         var actionType = $actionTypeSelect.val();
         var $connSelect = card.find('.connection-selector');
         var $connGroup = card.find('.connection-group');
+        var $targetGroup = card.find('.target-group');
+
+        // مخفی کردن کادر گیرنده برای n8n
+        if (['n8n', 'order_note', 'order_status'].includes(actionType)) {
+            $targetGroup.slideUp(200);
+        } else {
+            $targetGroup.slideDown(200);
+        }
 
         if (['order_note', 'order_status'].includes(actionType)) {
             $connGroup.hide();
@@ -142,19 +156,18 @@ jQuery(document).ready(function($) {
 
             $connSelect.find('option').each(function() {
                 var pType = $(this).attr('data-provider');
-                if (!pType) return; // Ignore default option
+                if (!pType) return; // گزینه پیشفرض (انتخاب کانال) است
                 
                 if (validProviders.includes(pType)) {
-                    $(this).show().removeAttr('disabled');
+                    $(this).show(); // دیگه از disabled استفاده نمیشه تا توی POST بره!
                     if (firstValidVal === "") firstValidVal = $(this).val();
                     if ($(this).is(':selected')) isCurrentValid = true;
                 } else {
-                    $(this).hide().attr('disabled', 'disabled');
+                    $(this).hide();
                 }
             });
 
             // فقط در صورتی مقدار سلکت را عوض کن که انتخاب فعلی کاربر نامعتبر باشه!
-            // این شرط جلوی پاک شدن دیتای ذخیره شده رو میگیره
             if (!isCurrentValid && $connSelect.val() !== "") {
                 $connSelect.val(firstValidVal);
             }
@@ -170,8 +183,9 @@ jQuery(document).ready(function($) {
     });
 
     // ==========================================
-    // 3. پاپ‌آپ تست آنی (Instant Action)
+    // 3. پاپ‌آپ تست آنی (Instant Action Modal)
     // ==========================================
+    // /* STREAMING_CHUNK:Binding Instant Test action logic... */
     var currentActionCard = null;
 
     $(document).on('click', '.btn-test-action', function(e) {
@@ -197,7 +211,7 @@ jQuery(document).ready(function($) {
 
     function fetchOrdersForTest(term) {
         var $results = $('#hub-order-results');
-        $results.html('<div class="hub-loading-spinner"><span class="dashicons dashicons-update-alt" style="animation: spin 2s linear infinite;"></span> در حال بارگذاری سفارشات...</div>');
+        $results.html('<div class="hub-loading-spinner"><span class="dashicons dashicons-update-alt" style="animation: spin 2s linear infinite;"></span> در حال جستجوی سفارشات...</div>');
 
         $.post(hubAdmin.ajax_url, {
             action: 'hub_search_orders',
@@ -228,7 +242,7 @@ jQuery(document).ready(function($) {
         };
 
         if(!actionData.connection_id && !['order_note', 'order_status'].includes(actionData.type)) {
-            alert('❌ لطفا ابتدا یک کانال ارتباطی انتخاب کنید.');
+            alert('❌ لطفا ابتدا یک کانال ارتباطی انتخاب کرده و سناریو را ذخیره کنید.');
             return;
         }
 
@@ -253,6 +267,7 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 4. WEBHOOKS LOGIC (کانال‌ها)
     // ==========================================
+    // /* STREAMING_CHUNK:Webhook connection field switches... */
     function toggleWebhookFields($selectElement) {
         var row = $selectElement.closest('.webhook-row');
         var val = $selectElement.val();
