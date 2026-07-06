@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Admin Panel Management Console Configuration
@@ -7,7 +6,6 @@
  * @subpackage Automation_Hub/admin
  */
 
-/* STREAMING_CHUNK:Initializing Admin class and hooks... */
 class Hub_Admin {
 
 	public function init() {
@@ -47,7 +45,6 @@ class Hub_Admin {
 		);
 	}
 
-/* STREAMING_CHUNK:Rendering Main Admin Layout... */
 	public function display_plugin_admin_page() {
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'campaigns';
 		?>
@@ -80,7 +77,7 @@ class Hub_Admin {
         <div id="hub-test-modal" class="hub-modal-overlay">
             <div class="hub-modal-box">
                 <div class="hub-modal-header">
-                    <h3>⚡ انتخاب سفارش برای تست آنی</h3>
+                    <h3>⚡ انتخاب سفارش برای اقدام آنی</h3>
                     <button type="button" class="hub-modal-close"><span class="dashicons dashicons-no-alt"></span></button>
                 </div>
                 <div class="hub-modal-body">
@@ -94,7 +91,6 @@ class Hub_Admin {
 		<?php
 	}
 
-/* STREAMING_CHUNK:Rendering Rules/Campaigns List Tab... */
 	private function render_campaigns_tab() {
 		$rules = get_option( 'hub_rules', array() );
 		$webhooks = get_option( 'hub_webhooks', array() );
@@ -104,7 +100,6 @@ class Hub_Admin {
 				<div class="hub-top-text">سناریوهای خود را بسازید تا فرآیندهای سایت به صورت خودکار اجرا شوند.</div>
 				<div class="hub-top-buttons">
 					<button type="button" id="btn-add-new-rule" class="hub-btn hub-btn-primary"><span class="dashicons dashicons-plus-alt2"></span> افزودن سناریو</button>
-					<button type="submit" name="hub_save_rules" class="hub-btn hub-btn-success"><span class="dashicons dashicons-saved"></span> ذخیره سناریوها</button>
 				</div>
 			</div>
 
@@ -119,6 +114,12 @@ class Hub_Admin {
 				}
 				?>
 			</div>
+
+            <!-- نوار چسبان برای ذخیره‌سازی که همیشه در پایین صفحه قابل مشاهده است -->
+            <div class="hub-sticky-save-bar">
+                <span class="hub-sticky-text">فراموش نکنید تغییرات خود را ذخیره کنید:</span>
+                <button type="submit" name="hub_save_rules" class="hub-btn hub-btn-success hub-btn-lg"><span class="dashicons dashicons-saved"></span> ذخیره تمامی سناریوها</button>
+            </div>
 		</div>
 
 		<script type="text/template" id="rule-template">
@@ -127,7 +128,6 @@ class Hub_Admin {
 		<?php
 	}
 
-/* STREAMING_CHUNK:Rendering Individual Rule Row (Triggers, Conditions, Actions)... */
 	private function render_rule_row( $rule = array(), $index = 0, $webhooks = array(), $is_template = false ) {
 		$name = isset( $rule['name'] ) ? $rule['name'] : '';
 		$trigger = isset( $rule['trigger'] ) ? $rule['trigger'] : 'order_status';
@@ -237,7 +237,7 @@ class Hub_Admin {
 					<button type="button" class="hub-btn hub-btn-outline btn-add-condition" style="margin-top: 15px;"><span class="dashicons dashicons-plus"></span> افزودن شرط</button>
 				</div>
 
-				<!-- Actions Section (With Bug Fixes and Custom Name Input) -->
+				<!-- Actions Section -->
 				<div class="hub-section">
 					<div class="hub-section-header">
 						<span class="hub-step-number">۳</span>
@@ -266,7 +266,7 @@ class Hub_Admin {
                                             <input type="text" name="<?php echo $act_prefix; ?>[name]" value="<?php echo esc_attr($act_name); ?>" class="hub-action-title-input" placeholder="عنوان اقدام (مثلا: ارسال به مدیر)" />
                                         </div>
                                         <div class="hub-action-controls">
-                                            <button type="button" class="hub-btn hub-btn-success btn-test-action" title="تست این اکشن روی یک سفارش واقعی">⚡ اقدام آنی</button>
+                                            <button type="button" class="hub-btn hub-btn-warning btn-test-action" title="تست این اکشن روی یک سفارش واقعی">⚡ اقدام آنی</button>
 										    <button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف این اقدام"><span class="dashicons dashicons-trash"></span></button>
                                         </div>
 									</div>
@@ -286,10 +286,10 @@ class Hub_Admin {
 										</div>
 										<div class="hub-form-group connection-group">
 											<label>انتخاب کانال ارتباطی</label>
-                                            <!-- CRITICAL BUG FIX: Added data-provider to PHP rendering so JS can see it! -->
 											<select name="<?php echo $act_prefix; ?>[connection_id]" class="hub-select connection-selector">
 												<option value="">-- انتخاب کانال --</option>
 												<?php foreach($webhooks as $w_key => $w_val): ?>
+                                                    <!-- Very important: data-provider attribute is here so JS can filter -->
 													<option value="<?php echo esc_attr($w_key); ?>" data-provider="<?php echo esc_attr($w_val['type']); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html(isset($w_val['name']) ? $w_val['name'] : $w_key); ?></option>
 												<?php endforeach; ?>
 											</select>
@@ -348,7 +348,6 @@ class Hub_Admin {
 		<?php
 	}
 
-/* STREAMING_CHUNK:Rendering Connections Tab... */
 	private function render_connections_tab() {
 		$webhooks = get_option( 'hub_webhooks', array() );
 		?>
@@ -357,7 +356,6 @@ class Hub_Admin {
 				<div class="hub-top-text">پروایدرها و درگاه‌های ارتباطی خود (مثل پیامک، تلگرام، n8n) را در اینجا تنظیم کنید.</div>
 				<div class="hub-top-buttons">
 					<button type="button" id="btn-add-new-webhook" class="hub-btn hub-btn-primary"><span class="dashicons dashicons-plus-alt2"></span> افزودن کانال</button>
-					<button type="submit" name="hub_save_webhooks" class="hub-btn hub-btn-success"><span class="dashicons dashicons-saved"></span> ذخیره کانال‌ها</button>
 				</div>
 			</div>
 
@@ -374,6 +372,12 @@ class Hub_Admin {
 				}
 				?>
 			</div>
+
+            <!-- نوار چسبان برای ذخیره‌سازی کانال‌ها -->
+            <div class="hub-sticky-save-bar">
+                <span class="hub-sticky-text">فراموش نکنید تغییرات کانال‌ها را ذخیره کنید:</span>
+                <button type="submit" name="hub_save_webhooks" class="hub-btn hub-btn-success hub-btn-lg"><span class="dashicons dashicons-saved"></span> ذخیره تمامی کانال‌ها</button>
+            </div>
 		</div>
 
 		<script type="text/template" id="webhook-template">
@@ -432,7 +436,6 @@ class Hub_Admin {
 				</div>
 
 				<div class="hub-dynamic-fields">
-					<!-- MeliPayamak Fields -->
 					<div class="wh-field wh-melipayamak" style="display:none;">
 						<div class="hub-grid-3">
 							<div class="hub-form-group">
@@ -450,7 +453,6 @@ class Hub_Admin {
 						</div>
 					</div>
 
-					<!-- Telegram Fields -->
 					<div class="wh-field wh-telegram" style="display:none;">
 						<div class="hub-grid-2">
 							<div class="hub-form-group">
@@ -464,7 +466,6 @@ class Hub_Admin {
 						</div>
 					</div>
 
-					<!-- Webhook URLs -->
 					<div class="wh-field wh-webhook-url" style="display:none;">
 						<div class="hub-form-group">
 							<label>آدرس وب‌هوک (Webhook URL)</label>
@@ -472,7 +473,6 @@ class Hub_Admin {
 						</div>
 					</div>
 
-					<!-- Email Field -->
 					<div class="wh-field wh-email" style="display:none;">
 						<div class="hub-info-box">
 							<span class="dashicons dashicons-email-alt"></span>
@@ -483,7 +483,6 @@ class Hub_Admin {
 						</div>
 					</div>
 
-					<!-- WhatsApp Fields -->
 					<div class="wh-field wh-whatsapp" style="display:none;">
 						<div class="hub-grid-2">
 							<div class="hub-form-group">
@@ -497,7 +496,6 @@ class Hub_Admin {
 						</div>
 					</div>
 
-					<!-- OneSignal Fields -->
 					<div class="wh-field wh-onesignal" style="display:none;">
 						<div class="hub-grid-2">
 							<div class="hub-form-group">
@@ -516,7 +514,6 @@ class Hub_Admin {
 		<?php
 	}
 
-/* STREAMING_CHUNK:Saving Settings and Cleaning Inputs... */
 	public function save_settings() {
 		if ( ! current_user_can( 'manage_options' ) ) return;
 		if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) return;
@@ -575,7 +572,7 @@ class Hub_Admin {
 				}
 			}
 			update_option( 'hub_rules', $clean_rules );
-			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون با موفقیت ذخیره شدند.</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>✅ تمامی سناریوها با موفقیت ذخیره شدند.</p></div>';
 		}
 
 		// 2. ذخیره تب کانال‌ها
@@ -606,7 +603,6 @@ class Hub_Admin {
 		}
 	}
 
-/* STREAMING_CHUNK:AJAX Endpoints for Modal Searching and Instant Execution... */
     public function ajax_search_orders() {
         check_ajax_referer( 'hub_admin_ajax', 'nonce' );
         if ( ! current_user_can('manage_options') || ! function_exists('wc_get_orders') ) {
@@ -677,7 +673,6 @@ class Hub_Admin {
             'entity_type'   => 'order'
         );
 
-        // دریافت پاسخ واقعی از سرور n8n یا پیامک
         $result = Hub_Sender::dispatch( sanitize_text_field($action_data['type']), $dispatch_args );
 
         if ( is_array($result) && !$result['success'] ) {

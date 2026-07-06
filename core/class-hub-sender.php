@@ -6,7 +6,6 @@
  * @subpackage Automation_Hub/core
  */
 
-/* STREAMING_CHUNK:Switch case for dispatching messages... */
 class Hub_Sender {
 
 	public static function dispatch( $type, $args ) {
@@ -38,7 +37,6 @@ class Hub_Sender {
 		}
 	}
 
-/* STREAMING_CHUNK:SMS and Telegram processing... */
 	private static function send_sms( $args ) {
 		$webhooks = get_option( 'hub_webhooks', array() );
 		$conn_id = $args['connection_id'];
@@ -56,7 +54,7 @@ class Hub_Sender {
 
 		if ( empty( $target_num ) ) return array('success' => false, 'msg' => 'شماره موبایل گیرنده یافت نشد.');
 
-		$response = wp_remote_post( 'https://api.melipayamak.com/json/Simple.ashx', array(
+		$response = wp_remote_post( '[https://api.melipayamak.com/json/Simple.ashx](https://api.melipayamak.com/json/Simple.ashx)', array(
 			'body' => array(
 				'username' => $provider['username'],
 				'password' => $provider['password'],
@@ -86,7 +84,7 @@ class Hub_Sender {
 
 		if ( empty( $chat_id ) ) return array('success' => false, 'msg' => 'شناسه چت (Chat ID) یافت نشد.');
 
-		$response = wp_remote_post( "https://api.telegram.org/bot" . $bot['token'] . "/sendMessage", array(
+		$response = wp_remote_post( "[https://api.telegram.org/bot](https://api.telegram.org/bot)" . $bot['token'] . "/sendMessage", array(
 			'body' => array(
 				'chat_id' => $chat_id,
 				'text'    => $args['message']
@@ -99,7 +97,6 @@ class Hub_Sender {
         return array('success' => true, 'msg' => 'پیام به تلگرام ارسال شد.');
 	}
 
-/* STREAMING_CHUNK:Advanced n8n Webhook Payload rendering... */
 	private static function send_webhook_payload( $args ) {
 		$webhooks = get_option( 'hub_webhooks', array() );
 		$conn_id = $args['connection_id'];
@@ -129,6 +126,7 @@ class Hub_Sender {
                 'first_name'    => $order->get_billing_first_name(),
                 'last_name'     => $order->get_billing_last_name(),
                 'phone'         => $order->get_billing_phone(),
+                'email'         => $order->get_billing_email(),
                 'payment_method'=> $order->get_payment_method_title(),
             );
         }
@@ -143,10 +141,9 @@ class Hub_Sender {
             return array('success' => false, 'msg' => 'خطای سرور: ' . $response->get_error_message());
         }
 
-        return array('success' => true, 'msg' => 'ارسال با موفقیت انجام شد (کد پاسخ سرور: ' . wp_remote_retrieve_response_code($response) . ')');
+        return array('success' => true, 'msg' => 'ارسال با موفقیت به وب‌هوک انجام شد (کد پاسخ سرور: ' . wp_remote_retrieve_response_code($response) . ')');
 	}
 
-/* STREAMING_CHUNK:Other providers (Email, Whatsapp, Internal)... */
 	private static function send_html_email( $args ) {
 		$to = $args['target_value'];
 		if ( 'customer' === $args['target_mode'] && $args['entity'] instanceof WC_Order ) {
@@ -174,7 +171,7 @@ class Hub_Sender {
 
 		if ( empty( $to ) ) return array('success'=>false, 'msg'=>'شماره خالی است.');
 
-		$response = wp_remote_post( "https://graph.facebook.com/v19.0/" . $config['phone_number_id'] . "/messages", array(
+		$response = wp_remote_post( "[https://graph.facebook.com/v19.0/](https://graph.facebook.com/v19.0/)" . $config['phone_number_id'] . "/messages", array(
 			'headers' => array(
 				'Authorization' => 'Bearer ' . $config['access_token'],
 				'Content-Type'  => 'application/json'
@@ -210,7 +207,7 @@ class Hub_Sender {
 		if ( ! isset( $webhooks[$args['connection_id']] ) ) return array('success'=>false, 'msg'=>'اکانت یافت نشد.');
 		$config = $webhooks[$args['connection_id']];
 
-		$response = wp_remote_post( 'https://onesignal.com/api/v1/notifications', array(
+		$response = wp_remote_post( '[https://onesignal.com/api/v1/notifications](https://onesignal.com/api/v1/notifications)', array(
 			'headers' => array(
 				'Authorization' => 'Basic ' . $config['rest_api_key'],
 				'Content-Type'  => 'application/json'

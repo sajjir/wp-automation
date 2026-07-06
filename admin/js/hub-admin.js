@@ -3,8 +3,6 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 1. RULES LOGIC (سناریوها)
     // ==========================================
-    
-    // /* STREAMING_CHUNK:Adding new rule block visually... */
     $('#btn-add-new-rule').on('click', function(e) {
         e.preventDefault();
         var container = $('#rules-repeater-container');
@@ -36,7 +34,6 @@ jQuery(document).ready(function($) {
         scope.find('.cond-' + val).fadeIn(200);
     });
 
-    // /* STREAMING_CHUNK:Adding rule constraints fields... */
     $(document).on('click', '.btn-add-condition', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -61,7 +58,6 @@ jQuery(document).ready(function($) {
         $(this).closest('.hub-condition-row').fadeOut(200, function() { $(this).remove(); });
     });
 
-    // /* STREAMING_CHUNK:Injecting a new Action block inside a Rule... */
     $(document).on('click', '.btn-add-action-node', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -76,7 +72,7 @@ jQuery(document).ready(function($) {
 
         var html = '<div class="hub-action-card" style="display:none;">' +
             '<div class="hub-action-header"><div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> <input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][name]" value="اقدام جدید" class="hub-action-title-input" /></div>' +
-            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-success btn-test-action" title="تست این اکشن روی یک سفارش واقعی">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-trash"></span></button></div></div>' +
+            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-warning btn-test-action" title="تست این اکشن روی یک سفارش واقعی">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-trash"></span></button></div></div>' +
             '<input type="hidden" name="rules['+ruleIdx+'][actions]['+actIdx+'][id]" value="'+uniqueActionId+'" />' +
             '<div class="hub-grid-2"><div class="hub-form-group"><label>نوع اقدام</label>' +
             '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][type]" class="hub-select action-type-selector">' +
@@ -124,9 +120,8 @@ jQuery(document).ready(function($) {
     });
 
     // ==========================================
-    // 2. منطق فیلتر کانال‌ها (رفع باگ ذخیره نشدن)
+    // 2. منطق فیلتر کانال‌ها (رفع باگ ذخیره نشدن و مخفی شدن گیرنده برای n8n)
     // ==========================================
-    // /* STREAMING_CHUNK:Filtering available connection methods smartly... */
     function filterConnectionOptions($actionTypeSelect) {
         var card = $actionTypeSelect.closest('.hub-action-card');
         var actionType = $actionTypeSelect.val();
@@ -185,7 +180,6 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 3. پاپ‌آپ تست آنی (Instant Action Modal)
     // ==========================================
-    // /* STREAMING_CHUNK:Binding Instant Test action logic... */
     var currentActionCard = null;
 
     $(document).on('click', '.btn-test-action', function(e) {
@@ -267,7 +261,6 @@ jQuery(document).ready(function($) {
     // ==========================================
     // 4. WEBHOOKS LOGIC (کانال‌ها)
     // ==========================================
-    // /* STREAMING_CHUNK:Webhook connection field switches... */
     function toggleWebhookFields($selectElement) {
         var row = $selectElement.closest('.webhook-row');
         var val = $selectElement.val();
