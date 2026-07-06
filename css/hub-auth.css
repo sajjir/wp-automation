@@ -1,0 +1,25 @@
+/* STREAMING_CHUNK:OTP Form Styles */
+.hub-auth-wrapper { max-width: 400px; margin: 40px auto; padding: 30px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; direction: rtl; font-family: inherit; }
+.hub-auth-wrapper * { box-sizing: border-box; }
+.hub-step { display: none; }
+.hub-step.active { display: block; animation: fadeIn 0.3s ease; }
+.hub-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #333; }
+.hub-subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
+.hub-input-row, .hub-otp-row, .hub-input-group { margin-bottom: 15px; }
+.hub-input-group { display: flex; gap: 10px; }
+.hub-auth-wrapper input[type="text"], .hub-auth-wrapper input[type="tel"], .hub-auth-wrapper input[type="email"] { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center; transition: all 0.3s; }
+.hub-auth-wrapper input[type="text"]:focus, .hub-auth-wrapper input[type="tel"]:focus, .hub-auth-wrapper input[type="email"]:focus { border-color: #007cba; outline: none; box-shadow: 0 0 0 1px #007cba; }
+.hub-otp-row input { letter-spacing: 5px; font-weight: bold; font-size: 20px; }
+.hub-btn { width: 100%; padding: 12px; background: #007cba; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+.hub-btn:hover { background: #006ba1; }
+.hub-btn:disabled { background: #ccc; cursor: not-allowed; }
+.hub-timer-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 13px; }
+#hub-timer { color: #d9534f; font-weight: bold; }
+.hub-link-btn, .hub-link-back { color: #007cba; text-decoration: none; cursor: pointer; }
+.hub-link-btn.disabled { color: #999; cursor: not-allowed; pointer-events: none; }
+.hub-footer-row { margin-top: 15px; text-align: center; font-size: 13px; }
+.hub-message { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 14px; display: none; }
+.hub-message.error { background: #fde8e8; color: #d9534f; display: block; }
+.hub-message.success { background: #e8fdf0; color: #28a745; display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.hub-myaccount-overlay { max-width: 450px; margin: 40px auto; }

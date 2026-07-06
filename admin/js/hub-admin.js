@@ -1,7 +1,7 @@
 jQuery(document).ready(function($) {
 
     // ==========================================
-    // 1. منطق سناریوها (Rules)
+    // 1. RULES LOGIC (سناریوها)
     // ==========================================
     $('#btn-add-new-rule').on('click', function(e) {
         e.preventDefault();
@@ -32,9 +32,30 @@ jQuery(document).ready(function($) {
         scope.find('.cond-' + val).fadeIn(200);
     });
 
-    // ==========================================
-    // 2. منطق اقدامات (Actions) و فیلتر کانال‌ها
-    // ==========================================
+    $(document).on('click', '.btn-add-condition', function(e) {
+        e.preventDefault();
+        var row = $(this).closest('.rule-row');
+        var ruleIdx = row.attr('data-index');
+        var container = row.find('.conditions-container-rows');
+        var condIdx = container.find('.hub-condition-row').length;
+
+        var html = '<div class="hub-condition-row" style="display:none;">' +
+            '<select name="rules['+ruleIdx+'][conditions]['+condIdx+'][field]" class="hub-select">' +
+            '<option value="order_total">جمع کل سفارش</option><option value="billing_city">شهر صورتحساب</option><option value="user_role">نقش کاربری</option></select> ' +
+            '<select name="rules['+ruleIdx+'][conditions]['+condIdx+'][operator]" class="hub-select">' +
+            '<option value="equals">برابر با</option><option value="not_equals">مخالف با</option><option value="greater_than">بزرگتر از</option><option value="contains">شامل عبارت</option></select> ' +
+            '<input type="text" name="rules['+ruleIdx+'][conditions]['+condIdx+'][value]" class="hub-input" placeholder="مقدار ارزیابی..." /> ' +
+            '<button type="button" class="hub-btn-icon-danger btn-remove-condition"><span class="dashicons dashicons-no"></span></button></div>';
+        
+        var $node = $(html);
+        container.append($node);
+        $node.fadeIn(200);
+    });
+
+    $(document).on('click', '.btn-remove-condition', function() {
+        $(this).closest('.hub-condition-row').fadeOut(200, function() { $(this).remove(); });
+    });
+
     $(document).on('click', '.btn-add-action-node', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -43,12 +64,12 @@ jQuery(document).ready(function($) {
         var actIdx = container.find('.hub-action-card').length;
         var uniqueActionId = 'act_' + Math.random().toString(36).substr(2, 9);
 
-        // واکشی آپشن‌های کانال از المان قالب (مخفی)
+        // واکشی آپشن‌های کانال از المان قالب (مخفی) تا گزینه‌های دیسیبل‌شده‌ی قبلی کپی نشوند
         var templateSelect = $('#hub-connection-options-template').html();
 
         var html = '<div class="hub-action-card" style="display:none;">' +
             '<div class="hub-action-header"><div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> <input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][name]" value="اقدام جدید" class="hub-action-title-input" /></div>' +
-            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-warning btn-test-action">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف"><span class="dashicons dashicons-trash"></span></button></div></div>' +
+            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-warning btn-test-action" title="تست این اکشن">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف"><span class="dashicons dashicons-trash"></span></button></div></div>' +
             '<input type="hidden" name="rules['+ruleIdx+'][actions]['+actIdx+'][id]" value="'+uniqueActionId+'" />' +
             
             '<div class="hub-grid-2"><div class="hub-form-group"><label>نوع اقدام</label>' +
@@ -64,6 +85,9 @@ jQuery(document).ready(function($) {
             '<div class="hub-form-group target-custom-box" style="display:none;"><label>مقدار گیرنده</label><input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][target_value]" class="hub-input ltr-input" /></div></div>' +
             
             '<div class="hub-form-group"><label>محتوای پیام</label><textarea name="rules['+ruleIdx+'][actions]['+actIdx+'][message]" class="hub-textarea" rows="3"></textarea></div>' +
+            '<div class="hub-delay-box"><label class="hub-checkbox-label"><input type="checkbox" name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][enabled]" class="chk-delay-toggle" value="1" /> اجرای با تاخیر (زمان‌بندی شده)</label>' +
+            '<div class="delay-values-wrapper hidden-box" style="margin-top:10px;"><input type="number" name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][value]" value="0" class="hub-input-small" style="width:80px;" /> ' +
+            '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][unit]" class="hub-select-small" style="width:120px;"><option value="minutes">دقیقه</option><option value="hours">ساعت</option><option value="days">روز</option></select> <span class="hub-text-muted">پس از وقوع رویداد</span></div></div>' +
             '</div>';
 
         var $node = $(html);
@@ -77,7 +101,6 @@ jQuery(document).ready(function($) {
         $(this).closest('.hub-action-card').slideUp(200, function() { $(this).remove(); });
     });
 
-    // فیلتر هوشمند کانال‌ها (رفع باگ ذخیره نشدن کانال و محو شدن فیلد گیرنده برای n8n)
     function filterConnectionOptions($actionTypeSelect) {
         var card = $actionTypeSelect.closest('.hub-action-card');
         var actionType = $actionTypeSelect.val();
@@ -92,7 +115,6 @@ jQuery(document).ready(function($) {
             $targetGroup.slideDown(200);
         }
 
-        // فیلتر کردن گزینه‌های Select بدون استفاده از disable (تا فرم درست ذخیره شود)
         if (['order_note', 'order_status'].includes(actionType)) {
             $connGroup.hide();
         } else {
@@ -105,16 +127,16 @@ jQuery(document).ready(function($) {
 
             $connSelect.find('option').each(function() {
                 var pType = $(this).data('provider');
-                if (!pType) return; // گزینه "انتخاب کانال" را نگه دار
+                if (!pType) return; 
                 
                 if (validProviders.includes(pType)) {
-                    $(this).show();
+                    $(this).show(); // نمایش مجدد آپشن
                 } else {
-                    $(this).hide();
+                    $(this).hide(); // فقط مخفی میکنیم، تا مشکل ذخیره نشدن برطرف شود
                 }
             });
 
-            // اگر کانال انتخاب شده فعلی مخفی شده است، روی پیشفرض تنظیم کن
+            // تنظیم خودکار دراپ داون اگر مقدار فعلی اش مخفی شده
             if ($connSelect.find('option:selected').css('display') === 'none') {
                 $connSelect.val('');
             }
@@ -132,10 +154,12 @@ jQuery(document).ready(function($) {
             card.find('.target-custom-box').hide();
         }
     });
+    
+    $(document).on('change', '.chk-delay-toggle', function() {
+        var block = $(this).closest('.hub-delay-box').find('.delay-values-wrapper');
+        if($(this).is(':checked')) { block.slideDown(200).removeClass('hidden-box'); } else { block.slideUp(200); }
+    });
 
-    // ==========================================
-    // 3. پاپ‌آپ تست آنی (Instant Action Modal)
-    // ==========================================
     var currentActionCard = null;
 
     $(document).on('click', '.btn-test-action', function(e) {
@@ -207,13 +231,10 @@ jQuery(document).ready(function($) {
             } else {
                 alert('❌ خطا در ارسال: ' + response.data);
             }
-            $btn.text('تست ارسال').prop('disabled', false);
+            $btn.text('ارسال').prop('disabled', false);
         });
     });
 
-    // ==========================================
-    // 4. WEBHOOKS LOGIC (کانال‌ها)
-    // ==========================================
     function toggleWebhookFields($selectElement) {
         var row = $selectElement.closest('.webhook-row');
         var val = $selectElement.val();
@@ -234,9 +255,9 @@ jQuery(document).ready(function($) {
         var container = $('#webhooks-repeater-container');
         container.find('.hub-empty-state').fadeOut(200, function(){ $(this).remove(); });
 
-        var count = container.find('.webhook-row').length;
+        var uniqueWhId = 'wh_' + Math.random().toString(36).substr(2, 9);
         var template = $('#webhook-template').html();
-        var parsedHtml = template.replace(/{{WH_INDEX}}/g, count);
+        var parsedHtml = template.replace(/{{WH_INDEX}}/g, uniqueWhId);
         
         var $node = $(parsedHtml).removeClass('template-hidden').hide();
         container.append($node);

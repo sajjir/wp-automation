@@ -23,7 +23,7 @@ class Hub_Admin {
 			return;
 		}
 		
-		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/js/css/hub-admin.css', array(), HUB_VERSION );
+		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
 		wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
 
         wp_localize_script( 'hub-admin-js', 'hubAdmin', array(
@@ -262,6 +262,9 @@ class Hub_Admin {
                                 $t_mode      = isset($act['target_mode']) ? $act['target_mode'] : 'customer';
                                 $t_value     = isset($act['target_value']) ? $act['target_value'] : '';
 								$act_msg     = isset($act['message']) ? $act['message'] : '';
+								$d_enabled   = !empty($act['delay']['enabled']);
+								$d_val       = isset($act['delay']['value']) ? $act['delay']['value'] : 0;
+								$d_unit      = isset($act['delay']['unit']) ? $act['delay']['unit'] : 'minutes';
 								?>
 								<div class="hub-action-card">
 									<div class="hub-action-header">
@@ -319,6 +322,21 @@ class Hub_Admin {
 										<textarea name="<?php echo $act_prefix; ?>[message]" class="hub-textarea" rows="3"><?php echo esc_textarea($act_msg); ?></textarea>
 										<div class="hub-tags-help">متغیرهای مجاز: <code>{order_id}</code> <code>{total}</code> <code>{full_name}</code> <code>{phone}</code></div>
 									</div>
+
+                                    <div class="hub-delay-box">
+										<label class="hub-checkbox-label">
+											<input type="checkbox" name="<?php echo $act_prefix; ?>[delay][enabled]" value="1" <?php checked($d_enabled, true); ?> class="chk-delay-toggle" />
+											اجرای با تاخیر (زمان‌بندی شده)
+										</label>
+										<div class="delay-values-wrapper <?php echo $d_enabled ? '' : 'hidden-box'; ?>" style="margin-top:10px;">
+											<input type="number" name="<?php echo $act_prefix; ?>[delay][value]" value="<?php echo esc_attr($d_val); ?>" class="hub-input-small" style="width:80px;" />
+											<select name="<?php echo $act_prefix; ?>[delay][unit]" class="hub-select-small" style="width:120px;">
+												<option value="minutes" <?php selected($d_unit, 'minutes'); ?>>دقیقه</option>
+												<option value="hours" <?php selected($d_unit, 'hours'); ?>>ساعت</option>
+												<option value="days" <?php selected($d_unit, 'days'); ?>>روز</option>
+											</select>
+										</div>
+									</div>
 								</div>
 								<?php
 							}
@@ -368,6 +386,8 @@ class Hub_Admin {
 	}
 
 	private function render_webhook_row( $webhook = array(), $index = '', $is_template = false ) {
+        // شناسه منحصر‌به‌فرد وب‌هوک
+        $wh_id           = isset( $webhook['id'] ) ? $webhook['id'] : $index;
 		$name            = isset( $webhook['name'] ) ? $webhook['name'] : '';
 		$type            = isset( $webhook['type'] ) ? $webhook['type'] : 'melipayamak';
 		$url             = isset( $webhook['url'] ) ? $webhook['url'] : '';
@@ -376,8 +396,6 @@ class Hub_Admin {
 		$from_number     = isset( $webhook['from_number'] ) ? $webhook['from_number'] : '';
 		$token           = isset( $webhook['token'] ) ? $webhook['token'] : '';
 		$chat_id         = isset( $webhook['chat_id'] ) ? $webhook['chat_id'] : '';
-		$phone_number_id = isset( $webhook['phone_number_id'] ) ? $webhook['phone_number_id'] : '';
-		$access_token    = isset( $webhook['access_token'] ) ? $webhook['access_token'] : '';
 
 		$row_class = $is_template ? 'hub-card webhook-row template-hidden' : 'hub-card webhook-row';
 		$attr_index = $is_template ? 'data-index="{{WH_INDEX}}"' : 'data-index="' . esc_attr($index) . '"';
@@ -393,6 +411,7 @@ class Hub_Admin {
 			</div>
 			
 			<div class="hub-card-body">
+                <input type="hidden" name="<?php echo $input_prefix; ?>[id]" value="<?php echo esc_attr($wh_id); ?>" />
 				<div class="hub-grid-2">
 					<div class="hub-form-group">
 						<label>نام کانال (شناسه داخلی)</label>
@@ -452,9 +471,6 @@ class Hub_Admin {
 		<?php
 	}
 
-    /**
-     * تب تنظیمات ورود با OTP
-     */
     private function render_otp_settings_tab() {
         $settings = get_option( 'hub_auth_settings', array() );
         $active = isset($settings['active']) ? $settings['active'] : false;
@@ -498,7 +514,7 @@ class Hub_Admin {
                             جایگزینی فرم ورود ووکامرس (صفحه My Account) با فرم OTP
                         </label>
                     </div>
-                    <p class="hub-help-text">برای استفاده در صفحات دیگر، از شورت‌کد <code>[hub_login_form]</code> استفاده کنید.</p>
+                    <p class="hub-help-text" style="margin-top:15px;">برای استفاده در صفحات دیگر، از شورت‌کد <code>[hub_login_form]</code> استفاده کنید.</p>
                 </div>
             </div>
             <div class="hub-bottom-save-bar">
@@ -530,6 +546,11 @@ class Hub_Admin {
 								'target_mode'   => isset($act['target_mode']) ? sanitize_text_field( $act['target_mode'] ) : 'customer',
 								'target_value'  => isset($act['target_value']) ? sanitize_text_field( $act['target_value'] ) : '',
 								'message'       => isset($act['message']) ? wp_kses_post( $act['message'] ) : '',
+                                'delay'         => array(
+									'enabled' => !empty($act['delay']['enabled']),
+									'value'   => isset($act['delay']['value']) ? intval( $act['delay']['value'] ) : 0,
+									'unit'    => isset($act['delay']['unit']) ? sanitize_text_field( $act['delay']['unit'] ) : 'minutes',
+								),
 							);
 						}
 					}
@@ -547,17 +568,18 @@ class Hub_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون ذخیره شدند.</p></div>';
 		}
 
-		// 2. ذخیره تب کانال‌ها (رفع باگ ذخیره کلید)
+		// 2. ذخیره تب کانال‌ها (باگ فیکس شده: استفاده از آیدی ثابت برای جلوگیری از شکسته شدن کلید)
 		if ( isset( $_POST['hub_save_webhooks'] ) ) {
 			$clean_webhooks = array();
 			if ( ! empty( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
-				foreach ( $_POST['webhooks'] as $wh_id => $wh ) {
+				foreach ( $_POST['webhooks'] as $wh_key => $wh ) {
 					if ( empty( $wh['name'] ) ) continue;
                     
-                    // مهم: اگر آیدی قدیمی است و فارسی نیست نگهش دار، وگرنه یک آیدی یونیک بساز تا باگ پیش نیاید
-                    $key = (strpos($wh_id, 'wh_') === 0) ? sanitize_text_field($wh_id) : uniqid('wh_');
+                    // استفاده از آیدی قبلی یا ساخت آیدی جدید در صورت عدم وجود
+                    $key = !empty($wh['id']) ? sanitize_text_field($wh['id']) : uniqid('wh_');
 
 					$clean_webhooks[ $key ] = array(
+                        'id'              => $key,
 						'name'            => sanitize_text_field( $wh['name'] ),
 						'type'            => sanitize_text_field( $wh['type'] ),
 						'url'             => esc_url_raw($wh['url']),
@@ -586,7 +608,6 @@ class Hub_Admin {
         }
 	}
 
-    // توابع تست AJAX
     public function ajax_search_orders() {
         check_ajax_referer( 'hub_admin_ajax', 'nonce' );
         if ( ! function_exists('wc_get_orders') ) wp_send_json_error();
@@ -627,6 +648,6 @@ class Hub_Admin {
 
         $result = Hub_Sender::dispatch( sanitize_text_field($action_data['type']), $dispatch_args );
         if ( is_array($result) && !$result['success'] ) wp_send_json_error( $result['msg'] );
-        wp_send_json_success( 'ارسال به با موفقیت شبیه‌سازی شد.' );
+        wp_send_json_success( 'ارسال با موفقیت شبیه‌سازی شد.' );
     }
 }
