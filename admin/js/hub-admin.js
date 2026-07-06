@@ -234,9 +234,9 @@ jQuery(document).ready(function($) {
         var container = $('#webhooks-repeater-container');
         container.find('.hub-empty-state').fadeOut(200, function(){ $(this).remove(); });
 
-        var uniqueWhId = 'wh_' + Math.random().toString(36).substr(2, 9);
+        var count = container.find('.webhook-row').length;
         var template = $('#webhook-template').html();
-        var parsedHtml = template.replace(/{{WH_INDEX}}/g, uniqueWhId);
+        var parsedHtml = template.replace(/{{WH_INDEX}}/g, count);
         
         var $node = $(parsedHtml).removeClass('template-hidden').hide();
         container.append($node);
