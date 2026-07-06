@@ -1,7 +1,7 @@
 jQuery(document).ready(function($) {
 
     // ==========================================
-    // 1. RULES LOGIC (سناریوها)
+    // 1. منطق سناریوها (Rules)
     // ==========================================
     $('#btn-add-new-rule').on('click', function(e) {
         e.preventDefault();
@@ -10,6 +10,7 @@ jQuery(document).ready(function($) {
 
         var count = container.find('.rule-row').length;
         var template = $('#rule-template').html();
+        
         var parsedHtml = template.replace(/{{RULE_INDEX}}/g, count);
         var $node = $(parsedHtml).removeClass('template-hidden').hide();
         
@@ -20,9 +21,7 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.remove-row', function(e) {
         e.preventDefault();
         if(confirm('آیا از حذف کامل این سناریو اطمینان دارید؟')) {
-            $(this).closest('.rule-row').slideUp(300, function() {
-                $(this).remove();
-            });
+            $(this).closest('.rule-row').slideUp(300, function() { $(this).remove(); });
         }
     });
 
@@ -33,30 +32,9 @@ jQuery(document).ready(function($) {
         scope.find('.cond-' + val).fadeIn(200);
     });
 
-    $(document).on('click', '.btn-add-condition', function(e) {
-        e.preventDefault();
-        var row = $(this).closest('.rule-row');
-        var ruleIdx = row.attr('data-index');
-        var container = row.find('.conditions-container-rows');
-        var condIdx = container.find('.hub-condition-row').length;
-
-        var html = '<div class="hub-condition-row" style="display:none;">' +
-            '<select name="rules['+ruleIdx+'][conditions]['+condIdx+'][field]" class="hub-select">' +
-            '<option value="order_total">جمع کل سفارش</option><option value="billing_city">شهر صورتحساب</option><option value="user_role">نقش کاربری</option></select> ' +
-            '<select name="rules['+ruleIdx+'][conditions]['+condIdx+'][operator]" class="hub-select">' +
-            '<option value="equals">برابر با</option><option value="not_equals">مخالف با</option><option value="greater_than">بزرگتر از</option><option value="contains">شامل عبارت</option></select> ' +
-            '<input type="text" name="rules['+ruleIdx+'][conditions]['+condIdx+'][value]" class="hub-input" placeholder="مقدار ارزیابی..." /> ' +
-            '<button type="button" class="hub-btn-icon-danger btn-remove-condition"><span class="dashicons dashicons-no"></span></button></div>';
-        
-        var $node = $(html);
-        container.append($node);
-        $node.fadeIn(200);
-    });
-
-    $(document).on('click', '.btn-remove-condition', function() {
-        $(this).closest('.hub-condition-row').fadeOut(200, function() { $(this).remove(); });
-    });
-
+    // ==========================================
+    // 2. منطق اقدامات (Actions) و فیلتر کانال‌ها
+    // ==========================================
     $(document).on('click', '.btn-add-action-node', function(e) {
         e.preventDefault();
         var row = $(this).closest('.rule-row');
@@ -65,27 +43,27 @@ jQuery(document).ready(function($) {
         var actIdx = container.find('.hub-action-card').length;
         var uniqueActionId = 'act_' + Math.random().toString(36).substr(2, 9);
 
-        // استفاده از قالب خام کانال‌ها تا هیچوقت گزینه پنهان‌شده‌ای کپی نشود! (رفع باگ ذخیره n8n)
-        var webhookOptions = $('#hub-raw-connection-options').html();
+        // واکشی آپشن‌های کانال از المان قالب (مخفی)
+        var templateSelect = $('#hub-connection-options-template').html();
 
         var html = '<div class="hub-action-card" style="display:none;">' +
-            '<div class="hub-action-header"><div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> <input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][name]" value="اقدام خروجی" class="hub-action-title-input" /></div>' +
-            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-warning btn-test-action" title="تست آنی">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف اقدام"><span class="dashicons dashicons-trash"></span></button></div></div>' +
+            '<div class="hub-action-header"><div class="hub-action-title"><span class="dashicons dashicons-megaphone"></span> <input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][name]" value="اقدام جدید" class="hub-action-title-input" /></div>' +
+            '<div class="hub-action-controls"><button type="button" class="hub-btn hub-btn-warning btn-test-action">⚡ اقدام آنی</button><button type="button" class="hub-btn-icon-danger btn-delete-action-node" title="حذف"><span class="dashicons dashicons-trash"></span></button></div></div>' +
             '<input type="hidden" name="rules['+ruleIdx+'][actions]['+actIdx+'][id]" value="'+uniqueActionId+'" />' +
+            
             '<div class="hub-grid-2"><div class="hub-form-group"><label>نوع اقدام</label>' +
             '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][type]" class="hub-select action-type-selector">' +
             '<option value="sms">ارسال پیامک (SMS)</option><option value="telegram">ارسال به تلگرام</option>' +
             '<option value="n8n">ارسال به n8n (وب‌هوک)</option><option value="email">ارسال ایمیل (SMTP)</option></select></div>' +
             '<div class="hub-form-group connection-group"><label>انتخاب کانال ارتباطی</label>' +
-            '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][connection_id]" class="hub-select connection-selector">'+webhookOptions+'</select></div></div>' +
+            '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][connection_id]" class="hub-select connection-selector">' + templateSelect + '</select></div></div>' +
+            
             '<div class="hub-grid-2 target-group"><div class="hub-form-group"><label>گیرنده پیام (Target)</label>' +
             '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][target_mode]" class="hub-select target-mode-selector">' +
             '<option value="customer">مشتری (صاحب سفارش)</option><option value="admin">مدیر سایت</option><option value="custom">شماره / آدرس دلخواه</option></select></div>' +
             '<div class="hub-form-group target-custom-box" style="display:none;"><label>مقدار گیرنده</label><input type="text" name="rules['+ruleIdx+'][actions]['+actIdx+'][target_value]" class="hub-input ltr-input" /></div></div>' +
+            
             '<div class="hub-form-group"><label>محتوای پیام</label><textarea name="rules['+ruleIdx+'][actions]['+actIdx+'][message]" class="hub-textarea" rows="3"></textarea></div>' +
-            '<div class="hub-delay-box"><label class="hub-checkbox-label"><input type="checkbox" name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][enabled]" class="chk-delay-toggle" value="1" /> اجرای با تاخیر</label>' +
-            '<div class="delay-values-wrapper hidden-box" style="margin-top:10px;"><input type="number" name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][value]" value="0" class="hub-input-small" style="width:80px;" /> ' +
-            '<select name="rules['+ruleIdx+'][actions]['+actIdx+'][delay][unit]" class="hub-select-small"><option value="minutes">دقیقه</option><option value="hours">ساعت</option><option value="days">روز</option></select></div></div>' +
             '</div>';
 
         var $node = $(html);
@@ -99,6 +77,7 @@ jQuery(document).ready(function($) {
         $(this).closest('.hub-action-card').slideUp(200, function() { $(this).remove(); });
     });
 
+    // فیلتر هوشمند کانال‌ها (رفع باگ ذخیره نشدن کانال و محو شدن فیلد گیرنده برای n8n)
     function filterConnectionOptions($actionTypeSelect) {
         var card = $actionTypeSelect.closest('.hub-action-card');
         var actionType = $actionTypeSelect.val();
@@ -106,12 +85,14 @@ jQuery(document).ready(function($) {
         var $connGroup = card.find('.connection-group');
         var $targetGroup = card.find('.target-group');
 
-        if (['n8n', 'order_note', 'order_status'].includes(actionType)) {
-            $targetGroup.hide();
+        // مخفی کردن گیرنده (Target) برای n8n و اکشن‌های داخلی
+        if (['n8n', 'order_note', 'order_status', 'slack', 'discord'].includes(actionType)) {
+            $targetGroup.slideUp(200);
         } else {
-            $targetGroup.show();
+            $targetGroup.slideDown(200);
         }
 
+        // فیلتر کردن گزینه‌های Select بدون استفاده از disable (تا فرم درست ذخیره شود)
         if (['order_note', 'order_status'].includes(actionType)) {
             $connGroup.hide();
         } else {
@@ -122,24 +103,20 @@ jQuery(document).ready(function($) {
             if (actionType === 'n8n') validProviders = ['n8n', 'google_sheet', 'slack', 'discord'];
             if (actionType === 'email') validProviders = ['email'];
 
-            var isCurrentValid = false;
-            var firstValidVal = "";
-
             $connSelect.find('option').each(function() {
-                var pType = $(this).attr('data-provider');
-                if (!pType) return;
+                var pType = $(this).data('provider');
+                if (!pType) return; // گزینه "انتخاب کانال" را نگه دار
                 
-                var show = validProviders.includes(pType);
-                $(this).toggle(show); // فقط مخفی میکنیم، دیگر disable نمیکنیم تا دیتابیس خراب نشود
-                
-                if (show) {
-                    if (firstValidVal === "") firstValidVal = $(this).val();
-                    if ($(this).is(':selected')) isCurrentValid = true;
+                if (validProviders.includes(pType)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
                 }
             });
 
-            if (!isCurrentValid && $connSelect.val() !== "") {
-                $connSelect.val(firstValidVal);
+            // اگر کانال انتخاب شده فعلی مخفی شده است، روی پیشفرض تنظیم کن
+            if ($connSelect.find('option:selected').css('display') === 'none') {
+                $connSelect.val('');
             }
         }
     }
@@ -156,15 +133,9 @@ jQuery(document).ready(function($) {
         }
     });
 
-    $(document).on('change', '.chk-delay-toggle', function() {
-        var block = $(this).closest('.hub-delay-box').find('.delay-values-wrapper');
-        if($(this).is(':checked')) {
-            block.slideDown(200).removeClass('hidden-box');
-        } else {
-            block.slideUp(200);
-        }
-    });
-
+    // ==========================================
+    // 3. پاپ‌آپ تست آنی (Instant Action Modal)
+    // ==========================================
     var currentActionCard = null;
 
     $(document).on('click', '.btn-test-action', function(e) {
@@ -174,7 +145,9 @@ jQuery(document).ready(function($) {
         fetchOrdersForTest('');
     });
 
-    $('.hub-modal-close').on('click', function() { $('#hub-test-modal').removeClass('active').fadeOut(200); });
+    $('.hub-modal-close').on('click', function() {
+        $('#hub-test-modal').removeClass('active').fadeOut(200);
+    });
 
     var searchTimer;
     $('#hub-order-search').on('keyup', function() {
@@ -185,10 +158,18 @@ jQuery(document).ready(function($) {
 
     function fetchOrdersForTest(term) {
         var $results = $('#hub-order-results');
-        $results.html('<div class="hub-loading-spinner">در حال جستجوی سفارشات...</div>');
+        $results.html('<div style="text-align:center; padding:20px; color:#64748b;">در حال جستجوی سفارشات...</div>');
 
-        $.post(hubAdmin.ajax_url, { action: 'hub_search_orders', nonce: hubAdmin.nonce, term: term }, function(response) {
-            if(response.success) { $results.html(response.data); } else { $results.html('<p>'+response.data+'</p>'); }
+        $.post(hubAdmin.ajax_url, {
+            action: 'hub_search_orders',
+            nonce: hubAdmin.nonce,
+            term: term
+        }, function(response) {
+            if(response.success) {
+                $results.html(response.data);
+            } else {
+                $results.html('<p style="color:red;text-align:center;">' + response.data + '</p>');
+            }
         });
     }
 
@@ -196,6 +177,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var $btn = $(this);
         var orderId = $btn.data('order-id');
+        
         if(!currentActionCard) return;
 
         var actionData = {
@@ -207,24 +189,36 @@ jQuery(document).ready(function($) {
         };
 
         if(!actionData.connection_id && !['order_note', 'order_status'].includes(actionData.type)) {
-            alert('❌ لطفا ابتدا یک کانال ارتباطی انتخاب کنید.'); return;
+            alert('❌ لطفا ابتدا یک کانال ارتباطی انتخاب کنید.');
+            return;
         }
 
-        $btn.text('در حال ارسال...').attr('disabled', true);
+        $btn.text('در حال ارسال...').prop('disabled', true);
 
         $.post(hubAdmin.ajax_url, {
-            action: 'hub_test_action', nonce: hubAdmin.nonce, order_id: orderId, action_data: actionData
+            action: 'hub_test_action',
+            nonce: hubAdmin.nonce,
+            order_id: orderId,
+            action_data: actionData
         }, function(response) {
-            if(response.success) { alert('✅ ' + response.data); $('#hub-test-modal').removeClass('active').fadeOut(200); }
-            else { alert('❌ خطا در ارسال: ' + response.data); }
-            $btn.text('ارسال').attr('disabled', false);
+            if(response.success) {
+                alert('✅ ' + response.data);
+                $('#hub-test-modal').removeClass('active').fadeOut(200);
+            } else {
+                alert('❌ خطا در ارسال: ' + response.data);
+            }
+            $btn.text('تست ارسال').prop('disabled', false);
         });
     });
 
+    // ==========================================
+    // 4. WEBHOOKS LOGIC (کانال‌ها)
+    // ==========================================
     function toggleWebhookFields($selectElement) {
         var row = $selectElement.closest('.webhook-row');
         var val = $selectElement.val();
         row.find('.wh-field').hide();
+        
         if( ['n8n', 'google_sheet', 'slack', 'discord'].includes(val) ) {
             row.find('.wh-webhook-url').fadeIn(200);
         } else {
@@ -239,11 +233,12 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var container = $('#webhooks-repeater-container');
         container.find('.hub-empty-state').fadeOut(200, function(){ $(this).remove(); });
-        var count = container.find('.webhook-row').length;
+
+        var uniqueWhId = 'wh_' + Math.random().toString(36).substr(2, 9);
         var template = $('#webhook-template').html();
-        var parsedHtml = template.replace(/{{WH_INDEX}}/g, count);
-        var $node = $(parsedHtml).removeClass('template-hidden').hide();
+        var parsedHtml = template.replace(/{{WH_INDEX}}/g, uniqueWhId);
         
+        var $node = $(parsedHtml).removeClass('template-hidden').hide();
         container.append($node);
         $node.slideDown(300);
         toggleWebhookFields($node.find('.webhook-type-selector'));
@@ -251,34 +246,9 @@ jQuery(document).ready(function($) {
 
     $(document).on('click', '.remove-webhook-row', function(e) {
         e.preventDefault();
-        if(confirm('آیا از حذف این کانال ارتباطی اطمینان دارید؟')) { $(this).closest('.webhook-row').slideUp(300, function(){ $(this).remove(); }); }
+        if(confirm('آیا از حذف این کانال ارتباطی اطمینان دارید؟')) {
+            $(this).closest('.webhook-row').slideUp(300, function(){ $(this).remove(); });
+        }
     });
 
-    // دکمه تست کانال (درخواست شده از نسخه اول)
-    $(document).on('click', '.btn-test-connection', function(e) {
-        e.preventDefault();
-        var row = $(this).closest('.webhook-row');
-        var connectionData = {
-            type: row.find('.webhook-type-selector').val(),
-            url: row.find('input[name$="[url]"]').val(),
-            username: row.find('input[name$="[username]"]').val(),
-            password: row.find('input[name$="[password]"]').val(),
-            from_number: row.find('input[name$="[from_number]"]').val(),
-            token: row.find('input[name$="[token]"]').val(),
-            chat_id: row.find('input[name$="[chat_id]"]').val()
-        };
-
-        var $btn = $(this);
-        $btn.text('در حال تست...').attr('disabled', true);
-        
-        $.post(hubAdmin.ajax_url, {
-            action: 'hub_test_connection', nonce: hubAdmin.nonce, connection: connectionData
-        }, function(response) {
-            if(response.success) { alert('✅ ' + response.data); }
-            else { alert('❌ خطا: ' + response.data); }
-            $btn.text('⚡ تست اتصال').attr('disabled', false);
-        });
-    });
-
-    $("<style type='text/css'>@keyframes spin { 100% { transform:rotate(360deg); } }</style>").appendTo("head");
 });
