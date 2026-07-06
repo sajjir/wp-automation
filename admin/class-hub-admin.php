@@ -13,17 +13,18 @@ class Hub_Admin {
 		add_action( 'admin_init', array( $this, 'save_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
-        // AJAX Hooks
+        // AJAX Hooks for Instant Testing
         add_action( 'wp_ajax_hub_search_orders', array( $this, 'ajax_search_orders' ) );
         add_action( 'wp_ajax_hub_test_action', array( $this, 'ajax_test_action' ) );
 	}
 
-	public function enqueue_admin_assets( $hook ) {
-		if ( 'toplevel_page_automation-hub' !== $hook ) {
+	public function enqueue_admin_assets() {
+        // راه حل قطعی برای لود شدن استایل‌ها (رفع باگ سفیدی صفحه)
+		if ( ! isset($_GET['page']) || $_GET['page'] !== 'automation-hub' ) {
 			return;
 		}
 		
-		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/css/hub-admin.css', array(), HUB_VERSION );
+		wp_enqueue_style( 'hub-admin-css', HUB_PLUGIN_URL . 'admin/js/css/hub-admin.css', array(), HUB_VERSION );
 		wp_enqueue_script( 'hub-admin-js', HUB_PLUGIN_URL . 'admin/js/hub-admin.js', array( 'jquery' ), HUB_VERSION, true );
 
         wp_localize_script( 'hub-admin-js', 'hubAdmin', array(
@@ -75,7 +76,7 @@ class Hub_Admin {
 			</form>
 		</div>
 
-        <!-- پاپ‌آپ تست اقدام آنی (Modal) -->
+        <!-- پاپ‌آپ تست اقدام آنی (Modal) - فقط زمانی که CSS لود شود مخفی است -->
         <div id="hub-test-modal" class="hub-modal-overlay">
             <div class="hub-modal-box">
                 <div class="hub-modal-header">
@@ -89,14 +90,16 @@ class Hub_Admin {
             </div>
         </div>
 
-        <!-- مخزن تمیز برای آپشن‌های کانال جهت استفاده JS (جلوگیری از باگ کپی شدن) -->
+        <!-- مخزن تمیز برای آپشن‌های کانال جهت استفاده JS -->
         <div id="hub-connection-options-template" style="display:none;">
             <option value="">-- انتخاب کانال --</option>
             <?php 
             $webhooks = get_option( 'hub_webhooks', array() );
-            foreach($webhooks as $w_key => $w_val): ?>
-                <option value="<?php echo esc_attr($w_key); ?>" data-provider="<?php echo esc_attr($w_val['type']); ?>"><?php echo esc_html($w_val['name']); ?></option>
-            <?php endforeach; ?>
+            if(is_array($webhooks)) {
+                foreach($webhooks as $w_key => $w_val): ?>
+                    <option value="<?php echo esc_attr($w_key); ?>" data-provider="<?php echo esc_attr($w_val['type']); ?>"><?php echo esc_html($w_val['name']); ?></option>
+                <?php endforeach; 
+            } ?>
         </div>
 		<?php
 	}
@@ -125,9 +128,9 @@ class Hub_Admin {
 				?>
 			</div>
 
-            <!-- دکمه ذخیره ثابت در پایین فرم -->
+            <!-- دکمه ذخیره ثابت و استاندارد در پایین فرم -->
             <div class="hub-bottom-save-bar">
-                <span>فراموش نکنید تغییرات را ذخیره کنید:</span>
+                <span>تغییرات را اعمال کنید:</span>
                 <button type="submit" name="hub_save_rules" class="hub-btn hub-btn-success hub-btn-lg"><span class="dashicons dashicons-saved"></span> ذخیره تمامی سناریوها</button>
             </div>
 		</div>
@@ -270,7 +273,7 @@ class Hub_Admin {
 									<div class="hub-action-header">
 										<div class="hub-action-title">
                                             <span class="dashicons dashicons-megaphone"></span> 
-                                            <input type="text" name="<?php echo $act_prefix; ?>[name]" value="<?php echo esc_attr($act_name); ?>" class="hub-action-title-input" placeholder="نام این اقدام (مثل: ارسال به مدیر)" />
+                                            <input type="text" name="<?php echo $act_prefix; ?>[name]" value="<?php echo esc_attr($act_name); ?>" class="hub-action-title-input" placeholder="نام اقدام (مثلا: ارسال به مدیر)" />
                                         </div>
                                         <div class="hub-action-controls">
                                             <button type="button" class="hub-btn hub-btn-warning btn-test-action">⚡ اقدام آنی</button>
@@ -295,24 +298,27 @@ class Hub_Admin {
 											<label>انتخاب کانال ارتباطی</label>
 											<select name="<?php echo $act_prefix; ?>[connection_id]" class="hub-select connection-selector">
 												<option value="">-- انتخاب کانال --</option>
-												<?php foreach($webhooks as $w_key => $w_val): ?>
+												<?php 
+                                                if(is_array($webhooks)) {
+                                                    foreach($webhooks as $w_key => $w_val): ?>
 													<option value="<?php echo esc_attr($w_key); ?>" data-provider="<?php echo esc_attr($w_val['type']); ?>" <?php selected($conn_id_val, $w_key); ?>><?php echo esc_html($w_val['name']); ?></option>
-												<?php endforeach; ?>
+												    <?php endforeach; 
+                                                } ?>
 											</select>
 										</div>
 									</div>
 
-                                    <div class="hub-grid-2 target-group">
+                                    <div class="hub-grid-2 target-group" style="<?php echo in_array($act_type, ['n8n', 'order_note', 'order_status']) ? 'display:none;' : ''; ?>">
                                         <div class="hub-form-group">
                                             <label>گیرنده پیام (Target)</label>
                                             <select name="<?php echo $act_prefix; ?>[target_mode]" class="hub-select target-mode-selector">
                                                 <option value="customer" <?php selected($t_mode, 'customer'); ?>>مشتری (صاحب سفارش)</option>
                                                 <option value="admin" <?php selected($t_mode, 'admin'); ?>>مدیر سایت</option>
-                                                <option value="custom" <?php selected($t_mode, 'custom'); ?>>شماره / آدرس دلخواه</option>
+                                                <option value="custom" <?php selected($t_mode, 'custom'); ?>>شماره / ایمیل دلخواه</option>
                                             </select>
                                         </div>
                                         <div class="hub-form-group target-custom-box" style="<?php echo $t_mode === 'custom' ? '' : 'display:none;'; ?>">
-                                            <label>مقدار گیرنده (شماره موبایل یا ایمیل)</label>
+                                            <label>مقدار گیرنده</label>
                                             <input type="text" name="<?php echo $act_prefix; ?>[target_value]" value="<?php echo esc_attr($t_value); ?>" class="hub-input ltr-input" placeholder="0912..." />
                                         </div>
                                     </div>
@@ -323,7 +329,7 @@ class Hub_Admin {
 										<div class="hub-tags-help">متغیرهای مجاز: <code>{order_id}</code> <code>{total}</code> <code>{full_name}</code> <code>{phone}</code></div>
 									</div>
 
-                                    <div class="hub-delay-box">
+									<div class="hub-delay-box">
 										<label class="hub-checkbox-label">
 											<input type="checkbox" name="<?php echo $act_prefix; ?>[delay][enabled]" value="1" <?php checked($d_enabled, true); ?> class="chk-delay-toggle" />
 											اجرای با تاخیر (زمان‌بندی شده)
@@ -386,8 +392,6 @@ class Hub_Admin {
 	}
 
 	private function render_webhook_row( $webhook = array(), $index = '', $is_template = false ) {
-        // شناسه منحصر‌به‌فرد وب‌هوک
-        $wh_id           = isset( $webhook['id'] ) ? $webhook['id'] : $index;
 		$name            = isset( $webhook['name'] ) ? $webhook['name'] : '';
 		$type            = isset( $webhook['type'] ) ? $webhook['type'] : 'melipayamak';
 		$url             = isset( $webhook['url'] ) ? $webhook['url'] : '';
@@ -411,7 +415,6 @@ class Hub_Admin {
 			</div>
 			
 			<div class="hub-card-body">
-                <input type="hidden" name="<?php echo $input_prefix; ?>[id]" value="<?php echo esc_attr($wh_id); ?>" />
 				<div class="hub-grid-2">
 					<div class="hub-form-group">
 						<label>نام کانال (شناسه داخلی)</label>
@@ -500,11 +503,15 @@ class Hub_Admin {
                             <label>انتخاب پنل پیامک برای ارسال کد تایید</label>
                             <select name="auth_settings[connection_id]" class="hub-select">
                                 <option value="">-- انتخاب پنل ملی‌پیامک --</option>
-                                <?php foreach($webhooks as $w_key => $w_val): 
-                                    if(isset($w_val['type']) && $w_val['type'] === 'melipayamak') {
-                                        echo '<option value="'.esc_attr($w_key).'" '.selected($conn_id, $w_key, false).'>'.esc_html($w_val['name']).'</option>';
-                                    }
-                                endforeach; ?>
+                                <?php 
+                                if(is_array($webhooks)){
+                                    foreach($webhooks as $w_key => $w_val): 
+                                        if(isset($w_val['type']) && $w_val['type'] === 'melipayamak') {
+                                            echo '<option value="'.esc_attr($w_key).'" '.selected($conn_id, $w_key, false).'>'.esc_html($w_val['name']).'</option>';
+                                        }
+                                    endforeach; 
+                                }
+                                ?>
                             </select>
                         </div>
                     </div>
@@ -530,7 +537,6 @@ class Hub_Admin {
 		if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) return;
 		if ( ! isset( $_POST['hub_nonce'] ) || ! wp_verify_nonce( $_POST['hub_nonce'], 'hub_save_nonce' ) ) return;
 
-		// 1. ذخیره تب سناریوها
 		if ( isset( $_POST['hub_save_rules'] ) ) {
 			$clean_rules = array();
 			if ( ! empty( $_POST['rules'] ) && is_array( $_POST['rules'] ) ) {
@@ -568,18 +574,13 @@ class Hub_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>✅ سناریوهای اتوماسیون ذخیره شدند.</p></div>';
 		}
 
-		// 2. ذخیره تب کانال‌ها (باگ فیکس شده: استفاده از آیدی ثابت برای جلوگیری از شکسته شدن کلید)
 		if ( isset( $_POST['hub_save_webhooks'] ) ) {
 			$clean_webhooks = array();
 			if ( ! empty( $_POST['webhooks'] ) && is_array( $_POST['webhooks'] ) ) {
 				foreach ( $_POST['webhooks'] as $wh_key => $wh ) {
 					if ( empty( $wh['name'] ) ) continue;
-                    
-                    // استفاده از آیدی قبلی یا ساخت آیدی جدید در صورت عدم وجود
-                    $key = !empty($wh['id']) ? sanitize_text_field($wh['id']) : uniqid('wh_');
-
+                    $key = (strpos($wh_key, 'wh_') === 0) ? sanitize_text_field($wh_key) : uniqid('wh_');
 					$clean_webhooks[ $key ] = array(
-                        'id'              => $key,
 						'name'            => sanitize_text_field( $wh['name'] ),
 						'type'            => sanitize_text_field( $wh['type'] ),
 						'url'             => esc_url_raw($wh['url']),
@@ -595,7 +596,6 @@ class Hub_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>✅ کانال‌ها با موفقیت ذخیره شدند.</p></div>';
 		}
 
-        // 3. ذخیره تب OTP
         if ( isset( $_POST['hub_save_otp'] ) && isset($_POST['auth_settings']) ) {
             $settings = array(
                 'active'        => isset($_POST['auth_settings']['active']),
